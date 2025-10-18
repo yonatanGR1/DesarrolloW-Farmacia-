@@ -32,18 +32,6 @@
                     <li class="nav-item">
                         <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Inicio</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="fas fa-user-md me-1"></i> Doctores</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="Pacientes/Pacientes.html"><i class="fas fa-users me-1"></i> Pacientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="Citas/Citas.html"><i class="fas fa-calendar-check me-1"></i> Citas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="Recetas/Recetas.html"><i class="fas fa-prescription me-1"></i> Recetas</a>
-                    </li>
                 </ul>
                 <div class="d-flex align-items-center">
                     <span class="navbar-text me-3">
@@ -58,32 +46,6 @@
     </nav>
 
     <main class="container my-4">
-        <!-- Sección de Bienvenida -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="alert alert-hospital">
-                    <h4><i class="fas fa-user-md me-2"></i> <span id="user-welcome-message">Panel de Control Médico</span></h4>
-                    <p class="mb-0">Bienvenido al sistema de gestión médica del Hospital La Paz</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navegación para Médicos -->
-        <div class="d-flex justify-content-center mb-4 flex-wrap gap-2">
-            <button class="btn btn-hospital doctor-nav-btn active" data-section="doctor-dashboard">
-                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-            </button>
-            <a href="Pacientes/Pacientes.html" class="btn btn-outline-hospital doctor-nav-btn">
-                <i class="fas fa-users me-2"></i>Gestión de Pacientes
-            </a>
-            <a href="Citas/Citas.html" class="btn btn-outline-hospital doctor-nav-btn">
-                <i class="fas fa-calendar-check me-2"></i>Gestión de Citas
-            </a>
-            <a href="Recetas/Recetas.html" class="btn btn-outline-hospital doctor-nav-btn">
-                <i class="fas fa-prescription me-2"></i>Gestión de Recetas
-            </a>
-        </div>
-
         <!-- Secciones para Doctores -->
         <div id="doctor-section">
             <!-- Dashboard Médico -->
@@ -173,38 +135,7 @@
                                     </div>
                                 </div>
 
-                                <!-- Acciones Rápidas -->
-                                <div class="row mt-4">
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <i class="fas fa-bolt me-2"></i>Acciones Rápidas
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="row">
-                                                    <div class="col-md-4 text-center">
-                                                        <a href="Pacientes/Pacientes.html" class="btn btn-hospital mb-2">
-                                                            <i class="fas fa-user-plus me-2"></i>Nuevo Paciente
-                                                        </a>
-                                                        <p class="text-muted small">Registrar nuevo paciente</p>
-                                                    </div>
-                                                    <div class="col-md-4 text-center">
-                                                        <a href="Citas/Citas.html" class="btn btn-hospital mb-2">
-                                                            <i class="fas fa-calendar-plus me-2"></i>Nueva Cita
-                                                        </a>
-                                                        <p class="text-muted small">Agendar cita médica</p>
-                                                    </div>
-                                                    <div class="col-md-4 text-center">
-                                                        <a href="Recetas/Recetas.html" class="btn btn-hospital mb-2">
-                                                            <i class="fas fa-file-prescription me-2"></i>Nueva Receta
-                                                        </a>
-                                                        <p class="text-muted small">Emitir receta médica</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                               
 
                                 <!-- Próximas Citas -->
                                 <div class="row mt-4">
@@ -357,13 +288,7 @@
         <div class="container">
             <p class="mb-0">Sistema de Gestión Médica - Hospital La Paz &copy; 2023</p>
             <p class="mb-0">Para emergencias, llame al: <strong>123-456-7890</strong></p>
-            <p class="mb-0 mt-2">
-                <small>
-                    <a href="Pacientes/Pacientes.html" class="text-light me-3"><i class="fas fa-users me-1"></i>Pacientes</a>
-                    <a href="Citas/Citas.html" class="text-light me-3"><i class="fas fa-calendar-check me-1"></i>Citas</a>
-                    <a href="Recetas/Recetas.html" class="text-light"><i class="fas fa-prescription me-1"></i>Recetas</a>
-                </small>
-            </p>
+           
         </div>
     </footer>
 
