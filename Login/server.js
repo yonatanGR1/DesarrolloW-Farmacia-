@@ -2,7 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const User = require("./models/User");
 const Paciente = require("./models/Paciente");
-const Receta = require("./models/Receta"); // AHORA SÍ DEBE FUNCIONAR
+const Receta = require("./models/Receta"); 
+const Cita = require("./models/Cita"); 
 
 // Para Mostrar si se importaron bien los modelos 
 console.log("✅ Modelo User importado:", User);
@@ -305,6 +306,9 @@ app.put("/api/pacientes/:id", async (req, res) => {
 // IMPORTAR RUTAS DE RECETAS - RUTA CORREGIDA
 const recetasRoutes = require('./routes/recetas');
 app.use('/api/recetas', recetasRoutes);
+
+const citasRoutes = require('./routes/citas'); 
+app.use('/api/citas', citasRoutes); 
 
 // Iniciando El servidor 
 app.listen(PORT, () => {
