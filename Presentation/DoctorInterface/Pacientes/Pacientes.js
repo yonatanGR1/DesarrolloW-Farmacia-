@@ -1,7 +1,7 @@
 // Pacientes.js - Funcionalidad específica para gestión de pacientes
 
-// Variable global para rastrear si estamos editando
-let editingPatientId = null;
+// Datos para la gestión de pacientes
+
 
 // Inicializar gestión de pacientes
 function initializePatientManager() {
@@ -10,7 +10,7 @@ function initializePatientManager() {
     // Configurar el formulario
     document.getElementById('patientForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        handlePatientSubmit();
+        registerPatient();
     });
     
     // Configurar búsqueda
@@ -20,7 +20,7 @@ function initializePatientManager() {
 }
 
 // Cargar lista de pacientes
-function loadPatientsList() {
+/*function loadPatientsList() {
     const container = document.getElementById('patientsList');
     container.innerHTML = '';
     
@@ -60,7 +60,7 @@ function loadPatientsList() {
         `;
         container.appendChild(patientElement);
     });
-}
+}*/
 
 // Filtrar pacientes
 function filterPatients(searchTerm) {
@@ -77,8 +77,8 @@ function filterPatients(searchTerm) {
     }
 }
 
-// Función unificada para manejar envío del formulario
-function handlePatientSubmit() {
+// Registrar nuevo paciente
+function registerPatient() {
     const name = document.getElementById('patientName').value;
     const lastname = document.getElementById('patientLastname').value;
     const age = parseInt(document.getElementById('patientAge').value);
@@ -104,53 +104,32 @@ function handlePatientSubmit() {
         return;
     }
     
-    if (editingPatientId !== null) {
-        // MODO EDICIÓN: Actualizar paciente existente
-        const index = patients.findIndex(p => p.id === editingPatientId);
-        if (index !== -1) {
-            patients[index] = {
-                id: editingPatientId,
-                name,
-                lastname,
-                age,
-                gender,
-                phone: phone || '',
-                email: email || '',
-                address: address || '',
-                conditions,
-                allergies,
-                medications,
-                createdAt: patients[index].createdAt
-            };
-            alert('Paciente actualizado correctamente.');
-        }
-        resetForm();
-        
-    } else {
-        // MODO NUEVO: Crear paciente
-        const newPatient = {
-            id: Date.now(),
-            name,
-            lastname,
-            age,
-            gender,
-            phone: phone || '',
-            email: email || '',
-            address: address || '',
-            conditions,
-            allergies,
-            medications,
-            createdAt: new Date().toISOString().split('T')[0]
-        };
-        
-        patients.push(newPatient);
-        alert('Paciente registrado correctamente.');
-        resetForm();
-    }
+    const newPatient = {
+        id: Date.now(),
+        name,
+        lastname,
+        age,
+        gender,
+        phone: phone || '',
+        email: email || '',
+        address: address || '',
+        conditions,
+        allergies,
+        medications,
+        createdAt: new Date().toISOString().split('T')[0]
+    };
     
-    // Guardar cambios y actualizar vista
-    savePatients();
+    patients.push(newPatient);
     loadPatientsList();
+    savePatients();
+  
+    
+    
+    // Reiniciar formulario
+    
+    
+    alert('Paciente registrado correctamente.');
+    document.getElementById('patientForm').reset();
 }
 
 // Guardar pacientes en localStorage
@@ -234,7 +213,10 @@ function scheduleAppointment(patientId) {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     
+    // Guardar el ID del paciente en localStorage para que Citas.js lo detecte
     localStorage.setItem('selectedPatientForAppointment', patientId);
+    
+    // Redirigir a la página de citas
     window.location.href = '../citas/Citas.html';
 }
 
@@ -244,10 +226,13 @@ function closePatientDetails() {
 }
 
 // Editar paciente
+let editingPatientId = null; // Variable global para rastrear qué paciente se está editando
+
 function editPatient(patientId) {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     
+    // Guardar el ID del paciente que se está editando
     editingPatientId = patientId;
     
     // Llenar el formulario con los datos del paciente
@@ -262,23 +247,55 @@ function editPatient(patientId) {
     document.getElementById('patientAllergies').value = patient.allergies.join(', ');
     document.getElementById('patientMedications').value = patient.medications.join(', ');
     
-    // Cambiar botón a modo edición
-    const submitBtn = document.getElementById('submitBtn');
+    // Cambiar botón de "Agregar" a "Actualizar"
+    const submitBtn = document.getElementById('submitBtn'); // Ajusta el ID según tu código
     submitBtn.textContent = 'Actualizar Paciente';
-    submitBtn.style.backgroundColor = '#ffa500';
+    submitBtn.style.backgroundColor = '#ffa500'; // Opcional: color diferente
     
-    // Cerrar detalles y desplazarse al formulario
-    closePatientDetails();
+    // Desplazarse al formulario
     document.getElementById('patientForm').scrollIntoView();
 }
 
-// Resetear formulario
+function savePatient() {
+    // Si estamos editando, actualizar el paciente existente
+    if (editingPatientId !== null) {
+        const index = patients.findIndex(p => p.id === editingPatientId);
+        if (index !== -1) {
+            patients[index] = {
+                id: editingPatientId,
+                name: document.getElementById('patientName').value,
+                lastname: document.getElementById('patientLastname').value,
+                age: document.getElementById('patientAge').value,
+                gender: document.getElementById('patientGender').value,
+                phone: document.getElementById('patientPhone').value,
+                email: document.getElementById('patientEmail').value,
+                address: document.getElementById('patientAddress').value,
+                conditions: document.getElementById('patientConditions').value.split(',').map(c => c.trim()),
+                allergies: document.getElementById('patientAllergies').value.split(',').map(a => a.trim()),
+                medications: document.getElementById('patientMedications').value.split(',').map(m => m.trim())
+            };
+        }
+        
+        // Resetear el formulario
+        resetForm();
+        editingPatientId = null;
+        
+    } else {
+        // Si es nuevo paciente, agregar normalmente
+        // Tu código para agregar paciente aquí
+    }
+    
+    // Actualizar la vista de pacientes
+    displayPatients();
+}
+
 function resetForm() {
     document.getElementById('patientForm').reset();
     
+    // Restaurar botón a estado inicial
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.textContent = 'Agregar Paciente';
-    submitBtn.style.backgroundColor = '';
+    submitBtn.style.backgroundColor = ''; // Restaurar color original
     
     editingPatientId = null;
 }
@@ -301,19 +318,10 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('es-ES', options);
 }
 
-// Crear receta para paciente específico
+// Funciones adicionales (placeholder)
 function createPrescription(patientId) {
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return;
-    
-    localStorage.setItem('selectedPatientForPrescription', patientId);
-    window.location.href = '../Recetas/Recetas.html';
-}
-
-// Ver historial médico del paciente
-function viewMedicalHistory(patientId) {
-    localStorage.setItem('selectedPatientForHistory', patientId);
-    window.location.href = '../PatientHistory.html';
+    alert(`Crear receta para el paciente con ID: ${patientId}`);
+    // En una implementación real, esto redirigiría al módulo de recetas
 }
 
 // Función de cierre de sesión
@@ -328,3 +336,26 @@ function logout() {
 document.addEventListener('DOMContentLoaded', function() {
     initializePatientManager();
 });
+
+// Crear receta para paciente específico
+function createPrescription(patientId) {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+    
+    // Guardar el ID del paciente en localStorage para que Recetas.js lo detecte
+    localStorage.setItem('selectedPatientForPrescription', patientId);
+    
+    // Redirigir a la página de recetas
+    window.location.href = '../Recetas/Recetas.html';
+
+    
+}
+// === AGREGAR ESTA FUNCIÓN NUEVA === //
+// Función para ver historial médico del paciente
+function viewMedicalHistory(patientId) {
+    // Guardar paciente seleccionado en localStorage
+    localStorage.setItem('selectedPatientForHistory', patientId);
+    // Redirigir al historial médico
+    window.location.href = '../PatientHistory.html';
+}
+// === FIN DE FUNCIÓN NUEVA === //

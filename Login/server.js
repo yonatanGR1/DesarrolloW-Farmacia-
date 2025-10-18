@@ -1,23 +1,24 @@
-const express = require("express");//Importa Express para crear servidor web 
-const mongoose = require("mongoose");//Importa Mongoose para conecta con MongoDB
-const User = require("./models/User");//Importa el modelo User (Esquema de la BD)
-const Paciente = require("./models/Paciente");//Importa el modelo Paciente
-const Receta = require("./models/Receta");// Importa el modelo Receta
+const express = require("express");
+const mongoose = require("mongoose");
+const User = require("./models/User");
+const Paciente = require("./models/Paciente");
+const Receta = require("./models/Receta"); // AHORA SÍ DEBE FUNCIONAR
 
-//Para Mostrar si se importaron bien los modelos 
+// Para Mostrar si se importaron bien los modelos 
 console.log("✅ Modelo User importado:", User);
 console.log("✅ Modelo Paciente importado:", Paciente);
+console.log("✅ Modelo Receta importado:", Receta);
 
-const bodyParser = require("body-parser");//Ayuda a leer JSON y Formularios 
-const path = require("path");//Ayuda con rutas de archivos 
-const bcrypt = require("bcrypt");//Para encriptar y comparar contraseñas 
+const bodyParser = require("body-parser");
+const path = require("path");
+const bcrypt = require("bcrypt");
 
-const app = express();//Crea una instancia de la aplicacion Express 
-const PORT = 3000;//Puerto donde correra el servidor 
+const app = express();
+const PORT = 3000;
 
 // Middleware para procesar datos JSON y formularios
-app.use(bodyParser.json());//Convierte el cuerpo de la peticion en JSON en un objeto Javascript 
-app.use(bodyParser.urlencoded({ extended: true }));//Extended: true (objetos y arrays)
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Archivos estáticos (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, "public")));
@@ -26,7 +27,7 @@ app.use('/pantallaPaciente', express.static(path.join(__dirname, "../pantallaPac
 
 // Base de datos temporal
 const USERS = {
-  usuario: "1234", // usuario: contraseña
+  usuario: "1234",
   admin: "adminpass"
 };
 
@@ -43,13 +44,11 @@ app.post("/register", async (req, res) => {
   try {
     const { email, password, rol, nombre } = req.body;
     
-    // Solo permitir registro de pacientes si fueron pre-registrados por un doctor
     if (rol === "paciente") {
       const pacienteExistente = await Paciente.findOne({ email });
       if (!pacienteExistente) {
         return res.status(400).json({ error: "El correo no fue pre-registrado por un doctor. Pídale al doctor que lo agregue antes." });
       }
-      // Verificar si ya se registró
       if (pacienteExistente.registrado) {
         return res.status(400).json({ error: "Paciente ya registrado. Inicie sesión." });
       }
@@ -67,7 +66,6 @@ app.post("/register", async (req, res) => {
     });
     await nuevoUsuario.save();
 
-    // Si es paciente, marcar en la colección Paciente que ya se registró y enlazar el user id
     if (rol === "paciente") {
       await Paciente.findOneAndUpdate({ email }, { registrado: true, user: nuevoUsuario._id });
     }
@@ -160,7 +158,6 @@ app.post("/api/doctor/add-paciente", async (req, res) => {
     if (!data.email) {
       return res.status(400).json({ error: "Se requiere email del paciente" });
     }
-    // Evitar duplicados
     const existing = await Paciente.findOne({ email: data.email });
     if (existing) {
       return res.status(400).json({ error: "Paciente ya pre-registrado" });
@@ -172,6 +169,7 @@ app.post("/api/doctor/add-paciente", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 app.get("/api/doctor/pacientes/:doctorId", async (req, res) => {
   try {
     const doctorId = req.params.doctorId;
@@ -183,46 +181,9 @@ app.get("/api/doctor/pacientes/:doctorId", async (req, res) => {
   }
 });
 
-// Endpoint para crear una receta y asignarla a un paciente
-app.post("/api/recetas", async (req, res) => {
-  try {
-    const { pacienteEmail, pacienteId, medicamentos, doctorId } = req.body;
-    let paciente;
-    if (pacienteId) {
-      paciente = await Paciente.findById(pacienteId);
-    } else if (pacienteEmail) {
-      paciente = await Paciente.findOne({ email: pacienteEmail });
-    }
-    if (!paciente) return res.status(404).json({ error: "Paciente no encontrado" });
-    
-    const receta = new Receta({
-      paciente: paciente._id,
-      doctor: doctorId || null,
-      medicamentos: medicamentos || []
-    });
-    await receta.save();
-    
-    // Guardar referencia en paciente
-    paciente.recetas = paciente.recetas || [];
-    paciente.recetas.push(receta._id);
-    await paciente.save();
-    
-    res.status(201).json({ message: "Receta creada", receta });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Obtener recetas de un paciente por email o id
-app.get("/api/pacientes/:id/recetas", async (req, res) => {
-  try {
-    const paciente = await Paciente.findById(req.params.id).populate('recetas');
-    if (!paciente) return res.status(404).json({ error: "Paciente no encontrado" });
-    res.json({ recetas: paciente.recetas });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// ELIMINA ESTAS RUTAS VIEJAS DE RECETAS - SE MOVIERON AL ROUTER
+// app.post("/api/recetas", async (req, res) => { ... });
+// app.get("/api/pacientes/:id/recetas", async (req, res) => { ... });
 
 //Rutas para Registrar Pacientes 
 app.post("/api/pacientes", async (req, res) => {
@@ -340,6 +301,10 @@ app.put("/api/pacientes/:id", async (req, res) => {
     res.status(500).json({ error: "Error al actualizar el paciente" });
   }
 });
+
+// IMPORTAR RUTAS DE RECETAS - RUTA CORREGIDA
+const recetasRoutes = require('./routes/recetas');
+app.use('/api/recetas', recetasRoutes);
 
 // Iniciando El servidor 
 app.listen(PORT, () => {

@@ -1,12 +1,12 @@
-// Recetas.js - Funcionalidad específica para gestión de recetas
+// Recetas.js - Funcionalidad específica para gestión de recetas con MongoDB
 
-// Datos para la gestión de recetas
-let prescriptions = JSON.parse(localStorage.getItem('medicalPrescriptions')) || [];
+const API_RECETAS = '/api/recetas';
+let prescriptions = [];
 
 // Inicializar gestión de recetas
 async function initializePrescriptionManager() {
     await loadPatientOptions();
-    loadPrescriptionsList();
+    await loadPrescriptionsList();
     setDefaultDates();
     
     // Configurar el formulario
@@ -32,18 +32,7 @@ async function getPatients() {
             throw new Error('Error al cargar pacientes');
         }
         const pacientes = await res.json();
-        
-        // Transformar los datos al formato esperado por el sistema de recetas
-        return pacientes.map(p => ({
-            id: p._id,
-            name: p.nombre,
-            lastname: p.apellido,
-            age: p.edad,
-            gender: p.genero,
-            phone: p.telefono,
-            email: p.email,
-            address: p.direccion
-        }));
+        return pacientes;
     } catch (error) {
         console.error('Error cargando pacientes:', error);
         return [];
@@ -60,8 +49,8 @@ async function loadPatientOptions() {
         
         patients.forEach(patient => {
             const option = document.createElement('option');
-            option.value = patient.id;
-            option.textContent = `${patient.name} ${patient.lastname} (${patient.age} años)`;
+            option.value = patient._id;
+            option.textContent = `${patient.nombre} ${patient.apellido} (${patient.edad} años)`;
             option.setAttribute('data-patient', JSON.stringify(patient));
             patientSelect.appendChild(option);
         });
@@ -76,13 +65,8 @@ function checkSelectedPatient() {
     const selectedPatientId = localStorage.getItem('selectedPatientForPrescription');
     
     if (selectedPatientId) {
-        // Seleccionar automáticamente el paciente en el dropdown
         document.getElementById('patientSelect').value = selectedPatientId;
-        
-        // Mostrar mensaje informativo
         showPatientSelectionMessage(selectedPatientId);
-        
-        // Limpiar la selección para futuras visitas
         localStorage.removeItem('selectedPatientForPrescription');
     }
 }
@@ -91,30 +75,26 @@ function checkSelectedPatient() {
 async function showPatientSelectionMessage(patientId) {
     try {
         const patients = await getPatients();
-        const patient = patients.find(p => p.id === patientId);
+        const patient = patients.find(p => p._id === patientId);
         
         if (patient) {
             const form = document.getElementById('prescriptionForm');
             const existingMessage = document.getElementById('patientSelectionMessage');
             
-            // Remover mensaje anterior si existe
             if (existingMessage) {
                 existingMessage.remove();
             }
             
-            // Crear y mostrar nuevo mensaje
             const messageDiv = document.createElement('div');
             messageDiv.id = 'patientSelectionMessage';
             messageDiv.className = 'alert alert-info alert-dismissible fade show';
             messageDiv.innerHTML = `
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Paciente seleccionado:</strong> ${patient.name} ${patient.lastname}
+                <strong>Paciente seleccionado:</strong> ${patient.nombre} ${patient.apellido}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             
             form.insertBefore(messageDiv, form.firstChild);
-            
-            // Desplazarse al formulario
             form.scrollIntoView({ behavior: 'smooth' });
         }
     } catch (error) {
@@ -182,7 +162,7 @@ function removeMedication(button) {
     }
 }
 
-// Crear nueva receta
+// Crear nueva receta en MongoDB
 async function createPrescription() {
     const patientId = document.getElementById('patientSelect').value;
     const prescriptionDate = document.getElementById('prescriptionDate').value;
@@ -190,20 +170,17 @@ async function createPrescription() {
     const generalInstructions = document.getElementById('prescriptionInstructions').value;
     const doctorNotes = document.getElementById('doctorNotes').value;
     
-    // Validar paciente seleccionado
     if (!patientId) {
         alert('Por favor, seleccione un paciente.');
         return;
     }
     
-    // Obtener medicamentos
     const medications = getMedicationsFromForm();
     if (medications.length === 0) {
         alert('Por favor, agregue al menos un medicamento.');
         return;
     }
     
-    // Validar que todos los medicamentos tengan nombre y dosis
     const invalidMedication = medications.find(med => !med.name || !med.dose || !med.frequency);
     if (invalidMedication) {
         alert('Por favor, complete todos los campos obligatorios para cada medicamento.');
@@ -211,35 +188,52 @@ async function createPrescription() {
     }
     
     try {
-        // Obtener información del paciente seleccionado
         const patientSelect = document.getElementById('patientSelect');
         const selectedOption = patientSelect.options[patientSelect.selectedIndex];
         const patientData = JSON.parse(selectedOption.getAttribute('data-patient'));
         
-        const newPrescription = {
-            id: Date.now().toString(),
-            patientId: patientId,
-            patientData: patientData, // Guardar datos completos del paciente
-            date: prescriptionDate,
-            validity: prescriptionValidity,
-            medications: medications,
-            generalInstructions: generalInstructions,
-            doctorNotes: doctorNotes,
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            doctor: "Dr. Juan Pérez" // Podría obtenerse del usuario logueado
+        const nuevaReceta = {
+            pacienteId: patientId,
+            pacienteNombre: patientData.nombre,
+            pacienteApellido: patientData.apellido,
+            pacienteEdad: patientData.edad,
+            pacienteGenero: patientData.genero,
+            fechaEmision: prescriptionDate,
+            fechaValidez: prescriptionValidity,
+            medicamentos: medications.map(med => ({
+                nombre: med.name,
+                dosis: med.dose,
+                frecuencia: med.frequency,
+                duracion: med.duration || '',
+                instruccionesEspeciales: med.specialInstructions || ''
+            })),
+            instruccionesGenerales: generalInstructions,
+            notasMedico: doctorNotes,
+            doctorNombre: "Dr. Juan Pérez",
+            estado: 'activa'
         };
         
-        prescriptions.push(newPrescription);
-        savePrescriptions();
-        loadPrescriptionsList();
+        const response = await fetch(API_RECETAS, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(nuevaReceta),
+        });
         
-        // Reiniciar formulario
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al crear receta');
+        }
+        
+        const recetaCreada = await response.json();
+        
+        await loadPrescriptionsList();
+        
         document.getElementById('prescriptionForm').reset();
         resetMedicationsForm();
         setDefaultDates();
         
-        // Remover mensaje de selección si existe
         const messageDiv = document.getElementById('patientSelectionMessage');
         if (messageDiv) {
             messageDiv.remove();
@@ -249,7 +243,7 @@ async function createPrescription() {
         
     } catch (error) {
         console.error('Error creando receta:', error);
-        alert('Error al crear la receta. Por favor, intente nuevamente.');
+        alert('Error al crear la receta: ' + error.message);
     }
 }
 
@@ -318,59 +312,67 @@ function resetMedicationsForm() {
     `;
 }
 
-// Cargar lista de recetas
-function loadPrescriptionsList() {
+// Cargar lista de recetas desde MongoDB
+async function loadPrescriptionsList() {
     const container = document.getElementById('prescriptionsList');
-    container.innerHTML = '';
+    container.innerHTML = '<p class="text-center text-muted">Cargando recetas...</p>';
     
-    if (prescriptions.length === 0) {
-        container.innerHTML = '<p class="text-center text-muted">No hay recetas emitidas.</p>';
-        return;
+    try {
+        const response = await fetch(API_RECETAS);
+        if (!response.ok) {
+            throw new Error('Error al cargar recetas');
+        }
+        
+        prescriptions = await response.json();
+        container.innerHTML = '';
+        
+        if (prescriptions.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted">No hay recetas emitidas.</p>';
+            return;
+        }
+        
+        prescriptions.forEach(prescription => {
+            const patientName = `${prescription.pacienteNombre} ${prescription.pacienteApellido}`;
+            
+            const today = new Date();
+            const validityDate = new Date(prescription.fechaValidez);
+            const isExpired = validityDate < today;
+            const statusClass = isExpired ? 'expired' : 'active';
+            const statusText = isExpired ? 'Expirada' : 'Activa';
+            
+            const prescriptionElement = document.createElement('div');
+            prescriptionElement.className = `list-group-item prescription-card ${statusClass}`;
+            prescriptionElement.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">${patientName}</h5>
+                    <small class="${isExpired ? 'status-expired' : 'status-active'}">${statusText}</small>
+                </div>
+                <p class="mb-1"><strong>Fecha:</strong> ${formatDate(prescription.fechaEmision)}</p>
+                <p class="mb-1"><strong>Válida hasta:</strong> ${formatDate(prescription.fechaValidez)}</p>
+                <p class="mb-1">
+                    <strong>Medicamentos:</strong><br>
+                    ${prescription.medicamentos.map(med => 
+                        `<span class="medication-badge">${med.nombre} ${med.dosis}</span>`
+                    ).join('')}
+                </p>
+                <div class="prescription-actions">
+                    <button class="btn btn-sm btn-hospital" onclick="viewPrescriptionDetails('${prescription._id}')">
+                        <i class="fas fa-eye"></i> Ver Detalles
+                    </button>
+                    <button class="btn btn-sm btn-outline-hospital" onclick="printPrescription('${prescription._id}')">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deletePrescription('${prescription._id}')">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            `;
+            container.appendChild(prescriptionElement);
+        });
+    } catch (error) {
+        console.error('Error cargando recetas:', error);
+        container.innerHTML = '<p class="text-center text-muted">Error al cargar recetas.</p>';
     }
-    
-    // Ordenar recetas por fecha (más recientes primero)
-    prescriptions.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    prescriptions.forEach(prescription => {
-        const patient = prescription.patientData;
-        const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
-        
-        // Determinar estado de la receta
-        const today = new Date();
-        const validityDate = new Date(prescription.validity);
-        const isExpired = validityDate < today;
-        const statusClass = isExpired ? 'expired' : 'active';
-        const statusText = isExpired ? 'Expirada' : 'Activa';
-        
-        const prescriptionElement = document.createElement('div');
-        prescriptionElement.className = `list-group-item prescription-card ${statusClass}`;
-        prescriptionElement.innerHTML = `
-            <div class="d-flex w-100 justify-content-between">
-                <h5 class="mb-1">${patientName}</h5>
-                <small class="${isExpired ? 'status-expired' : 'status-active'}">${statusText}</small>
-            </div>
-            <p class="mb-1"><strong>Fecha:</strong> ${formatDate(prescription.date)}</p>
-            <p class="mb-1"><strong>Válida hasta:</strong> ${formatDate(prescription.validity)}</p>
-            <p class="mb-1">
-                <strong>Medicamentos:</strong><br>
-                ${prescription.medications.map(med => 
-                    `<span class="medication-badge">${med.name} ${med.dose}</span>`
-                ).join('')}
-            </p>
-            <div class="prescription-actions">
-                <button class="btn btn-sm btn-hospital" onclick="viewPrescriptionDetails('${prescription.id}')">
-                    <i class="fas fa-eye"></i> Ver Detalles
-                </button>
-                <button class="btn btn-sm btn-outline-hospital" onclick="printPrescription('${prescription.id}')">
-                    <i class="fas fa-print"></i> Imprimir
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deletePrescription('${prescription.id}')">
-                    <i class="fas fa-trash"></i> Eliminar
-                </button>
-            </div>
-        `;
-        container.appendChild(prescriptionElement);
-    });
 }
 
 // Filtrar recetas
@@ -391,18 +393,31 @@ function filterPrescriptions(searchTerm) {
 }
 
 // Ver detalles de receta
-function viewPrescriptionDetails(prescriptionId) {
-    const prescription = prescriptions.find(p => p.id === prescriptionId);
-    if (!prescription) return;
-    
-    const patient = prescription.patientData;
-    const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
-    
-    const detailsContent = document.getElementById('prescriptionPreviewContent');
-    detailsContent.innerHTML = generatePrescriptionPreview(prescription, patient, patientName);
-    
-    // Mostrar sección de vista previa
-    document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+async function viewPrescriptionDetails(prescriptionId) {
+    try {
+        const response = await fetch(`${API_RECETAS}/${prescriptionId}`);
+        if (!response.ok) {
+            throw new Error('Error al cargar receta');
+        }
+        
+        const prescription = await response.json();
+        const patientName = `${prescription.pacienteNombre} ${prescription.pacienteApellido}`;
+        
+        const patientData = {
+            name: prescription.pacienteNombre,
+            lastname: prescription.pacienteApellido,
+            age: prescription.pacienteEdad,
+            gender: prescription.pacienteGenero
+        };
+        
+        const detailsContent = document.getElementById('prescriptionPreviewContent');
+        detailsContent.innerHTML = generatePrescriptionPreview(prescription, patientData, patientName);
+        
+        document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error cargando detalles de receta:', error);
+        alert('Error al cargar los detalles de la receta.');
+    }
 }
 
 // Vista previa de receta
@@ -425,25 +440,32 @@ async function previewPrescription() {
     }
     
     try {
-        // Obtener información del paciente seleccionado
         const patientSelect = document.getElementById('patientSelect');
         const selectedOption = patientSelect.options[patientSelect.selectedIndex];
         const patient = JSON.parse(selectedOption.getAttribute('data-patient'));
-        const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
+        const patientName = `${patient.nombre} ${patient.apellido}`;
         
         const previewPrescription = {
-            date: prescriptionDate,
-            validity: prescriptionValidity,
-            medications: medications,
-            generalInstructions: generalInstructions,
-            doctorNotes: doctorNotes,
-            patientData: patient
+            fechaEmision: prescriptionDate,
+            fechaValidez: prescriptionValidity,
+            medicamentos: medications.map(med => ({
+                nombre: med.name,
+                dosis: med.dose,
+                frecuencia: med.frequency,
+                duracion: med.duration || '',
+                instruccionesEspeciales: med.specialInstructions || ''
+            })),
+            instruccionesGenerales: generalInstructions,
+            notasMedico: doctorNotes,
+            pacienteNombre: patient.nombre,
+            pacienteApellido: patient.apellido,
+            pacienteEdad: patient.edad,
+            pacienteGenero: patient.genero
         };
         
         const detailsContent = document.getElementById('prescriptionPreviewContent');
         detailsContent.innerHTML = generatePrescriptionPreview(previewPrescription, patient, patientName, true);
         
-        // Mostrar sección de vista previa
         document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
     } catch (error) {
         console.error('Error generando vista previa:', error);
@@ -453,8 +475,6 @@ async function previewPrescription() {
 
 // Generar HTML para vista previa de receta
 function generatePrescriptionPreview(prescription, patient, patientName, isPreview = false) {
-    const today = new Date().toLocaleDateString('es-ES');
-    
     return `
         <div class="prescription-preview">
             <div class="prescription-header">
@@ -469,41 +489,41 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Paciente:</strong> ${patientName}</p>
-                        ${patient ? `<p><strong>Edad:</strong> ${patient.age} años</p>` : ''}
-                        ${patient ? `<p><strong>Género:</strong> ${patient.gender}</p>` : ''}
+                        <p><strong>Edad:</strong> ${patient.age || patient.edad} años</p>
+                        <p><strong>Género:</strong> ${patient.gender || patient.genero}</p>
                     </div>
                     <div class="col-md-6 text-end">
-                        <p><strong>Fecha:</strong> ${formatDate(prescription.date)}</p>
-                        <p><strong>Válida hasta:</strong> ${formatDate(prescription.validity)}</p>
+                        <p><strong>Fecha:</strong> ${formatDate(prescription.fechaEmision)}</p>
+                        <p><strong>Válida hasta:</strong> ${formatDate(prescription.fechaValidez)}</p>
                     </div>
                 </div>
             </div>
             
             <div class="prescription-medications">
                 <h5>MEDICAMENTOS RECETADOS:</h5>
-                ${prescription.medications.map(med => `
+                ${prescription.medicamentos.map(med => `
                     <div class="medication-row">
-                        <div class="medication-name"><strong>${med.name} ${med.dose}</strong></div>
+                        <div class="medication-name"><strong>${med.nombre} ${med.dosis}</strong></div>
                         <div class="medication-details">
-                            ${med.frequency}
-                            ${med.duration ? ` por ${med.duration} días` : ''}
-                            ${med.specialInstructions ? `<br><small><strong>Instrucciones:</strong> ${med.specialInstructions}</small>` : ''}
+                            ${med.frecuencia}
+                            ${med.duracion ? ` por ${med.duracion} días` : ''}
+                            ${med.instruccionesEspeciales ? `<br><small><strong>Instrucciones:</strong> ${med.instruccionesEspeciales}</small>` : ''}
                         </div>
                     </div>
                 `).join('')}
             </div>
             
-            ${prescription.generalInstructions ? `
+            ${prescription.instruccionesGenerales ? `
                 <div class="prescription-instructions">
                     <h5>INSTRUCCIONES GENERALES:</h5>
-                    <p>${prescription.generalInstructions}</p>
+                    <p>${prescription.instruccionesGenerales}</p>
                 </div>
             ` : ''}
             
-            ${prescription.doctorNotes ? `
+            ${prescription.notasMedico ? `
                 <div class="doctor-notes">
                     <h5>NOTAS MÉDICAS:</h5>
-                    <p>${prescription.doctorNotes}</p>
+                    <p>${prescription.notasMedico}</p>
                 </div>
             ` : ''}
             
@@ -526,7 +546,7 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
         
         ${!isPreview ? `
             <div class="text-center mt-3">
-                <button class="btn btn-hospital" onclick="printPrescription('${prescription.id}')">
+                <button class="btn btn-hospital" onclick="printPrescription('${prescription._id}')">
                     <i class="fas fa-print me-1"></i> Imprimir Receta
                 </button>
             </div>
@@ -540,62 +560,83 @@ function closePrescriptionPreview() {
 }
 
 // Imprimir receta
-function printPrescription(prescriptionId) {
-    const prescription = prescriptions.find(p => p.id === prescriptionId);
-    if (!prescription) return;
-    
-    const patient = prescription.patientData;
-    const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
-    
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Receta Médica - ${patientName}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .prescription-preview { background: white; border: 2px solid #333; padding: 30px; }
-                .prescription-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-                .prescription-header h2 { color: #2c7db1; margin: 0; }
-                .prescription-header h4 { color: #666; margin: 5px 0; }
-                .medication-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
-                .doctor-signature { margin-top: 50px; border-top: 1px solid #333; padding-top: 10px; display: inline-block; min-width: 200px; }
-                @media print { 
-                    body { margin: 0; } 
-                    .prescription-preview { border: none; padding: 0; }
-                }
-            </style>
-        </head>
-        <body>
-            ${generatePrescriptionPreview(prescription, patient, patientName)}
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    
-    setTimeout(() => {
-        printWindow.print();
-        // printWindow.close(); // Opcional: cerrar ventana después de imprimir
-    }, 500);
+async function printPrescription(prescriptionId) {
+    try {
+        const response = await fetch(`${API_RECETAS}/${prescriptionId}`);
+        if (!response.ok) {
+            throw new Error('Error al cargar receta');
+        }
+        
+        const prescription = await response.json();
+        const patientName = `${prescription.pacienteNombre} ${prescription.pacienteApellido}`;
+        
+        const patientData = {
+            name: prescription.pacienteNombre,
+            lastname: prescription.pacienteApellido,
+            age: prescription.pacienteEdad,
+            gender: prescription.pacienteGenero
+        };
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Receta Médica - ${patientName}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .prescription-preview { background: white; border: 2px solid #333; padding: 30px; }
+                    .prescription-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+                    .prescription-header h2 { color: #2c7db1; margin: 0; }
+                    .prescription-header h4 { color: #666; margin: 5px 0; }
+                    .medication-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
+                    .doctor-signature { margin-top: 50px; border-top: 1px solid #333; padding-top: 10px; display: inline-block; min-width: 200px; }
+                    @media print { 
+                        body { margin: 0; } 
+                        .prescription-preview { border: none; padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                ${generatePrescriptionPreview(prescription, patientData, patientName)}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    } catch (error) {
+        console.error('Error imprimiendo receta:', error);
+        alert('Error al imprimir la receta.');
+    }
 }
 
-// Eliminar receta
-function deletePrescription(prescriptionId, confirm = true) {
+// Eliminar receta de MongoDB
+async function deletePrescription(prescriptionId, confirm = true) {
     if (confirm && !window.confirm('¿Está seguro de que desea eliminar esta receta?')) {
         return;
     }
     
-    prescriptions = prescriptions.filter(p => p.id !== prescriptionId);
-    savePrescriptions();
-    loadPrescriptionsList();
-    closePrescriptionPreview();
-}
-
-// Guardar recetas en localStorage
-function savePrescriptions() {
-    localStorage.setItem('medicalPrescriptions', JSON.stringify(prescriptions));
+    try {
+        const response = await fetch(`${API_RECETAS}/${prescriptionId}`, {
+            method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al eliminar receta');
+        }
+        
+        await loadPrescriptionsList();
+        closePrescriptionPreview();
+        
+        alert('Receta eliminada correctamente.');
+    } catch (error) {
+        console.error('Error eliminando receta:', error);
+        alert('Error al eliminar la receta.');
+    }
 }
 
 // Formatear fecha
