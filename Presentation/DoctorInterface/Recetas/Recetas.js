@@ -4,8 +4,8 @@
 let prescriptions = JSON.parse(localStorage.getItem('medicalPrescriptions')) || [];
 
 // Inicializar gestión de recetas
-function initializePrescriptionManager() {
-    loadPatientOptions();
+async function initializePrescriptionManager() {
+    await loadPatientOptions();
     loadPrescriptionsList();
     setDefaultDates();
     
@@ -24,21 +24,63 @@ function initializePrescriptionManager() {
     checkSelectedPatient();
 }
 
+// Obtener lista de pacientes desde la API
+async function getPatients() {
+    try {
+        const res = await fetch("/api/pacientes");
+        if (!res.ok) {
+            throw new Error('Error al cargar pacientes');
+        }
+        const pacientes = await res.json();
+        
+        // Transformar los datos al formato esperado por el sistema de recetas
+        return pacientes.map(p => ({
+            id: p._id,
+            name: p.nombre,
+            lastname: p.apellido,
+            age: p.edad,
+            gender: p.genero,
+            phone: p.telefono,
+            email: p.email,
+            address: p.direccion
+        }));
+    } catch (error) {
+        console.error('Error cargando pacientes:', error);
+        return [];
+    }
+}
+
+// Cargar opciones de pacientes en el selector
+async function loadPatientOptions() {
+    const patientSelect = document.getElementById('patientSelect');
+    patientSelect.innerHTML = '<option value="">Seleccionar paciente...</option>';
+    
+    try {
+        const patients = await getPatients();
+        
+        patients.forEach(patient => {
+            const option = document.createElement('option');
+            option.value = patient.id;
+            option.textContent = `${patient.name} ${patient.lastname} (${patient.age} años)`;
+            option.setAttribute('data-patient', JSON.stringify(patient));
+            patientSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error cargando opciones de pacientes:', error);
+        patientSelect.innerHTML = '<option value="">Error al cargar pacientes</option>';
+    }
+}
+
 // Verificar si hay un paciente seleccionado desde pacientes
 function checkSelectedPatient() {
     const selectedPatientId = localStorage.getItem('selectedPatientForPrescription');
     
     if (selectedPatientId) {
-        // Encontrar el paciente en la lista
-        const patients = getPatients();
-        const patient = patients.find(p => p.id == selectedPatientId);
-        if (patient) {
-            // Seleccionar automáticamente el paciente en el dropdown
-            document.getElementById('patientSelect').value = selectedPatientId;
-            
-            // Mostrar mensaje informativo
-            showPatientSelectionMessage(patient);
-        }
+        // Seleccionar automáticamente el paciente en el dropdown
+        document.getElementById('patientSelect').value = selectedPatientId;
+        
+        // Mostrar mensaje informativo
+        showPatientSelectionMessage(selectedPatientId);
         
         // Limpiar la selección para futuras visitas
         localStorage.removeItem('selectedPatientForPrescription');
@@ -46,48 +88,38 @@ function checkSelectedPatient() {
 }
 
 // Mostrar mensaje cuando un paciente es seleccionado automáticamente
-function showPatientSelectionMessage(patient) {
-    const form = document.getElementById('prescriptionForm');
-    const existingMessage = document.getElementById('patientSelectionMessage');
-    
-    // Remover mensaje anterior si existe
-    if (existingMessage) {
-        existingMessage.remove();
+async function showPatientSelectionMessage(patientId) {
+    try {
+        const patients = await getPatients();
+        const patient = patients.find(p => p.id === patientId);
+        
+        if (patient) {
+            const form = document.getElementById('prescriptionForm');
+            const existingMessage = document.getElementById('patientSelectionMessage');
+            
+            // Remover mensaje anterior si existe
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // Crear y mostrar nuevo mensaje
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'patientSelectionMessage';
+            messageDiv.className = 'alert alert-info alert-dismissible fade show';
+            messageDiv.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Paciente seleccionado:</strong> ${patient.name} ${patient.lastname}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            form.insertBefore(messageDiv, form.firstChild);
+            
+            // Desplazarse al formulario
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+    } catch (error) {
+        console.error('Error mostrando mensaje de selección:', error);
     }
-    
-    // Crear y mostrar nuevo mensaje
-    const messageDiv = document.createElement('div');
-    messageDiv.id = 'patientSelectionMessage';
-    messageDiv.className = 'alert alert-info alert-dismissible fade show';
-    messageDiv.innerHTML = `
-        <i class="fas fa-info-circle me-2"></i>
-        <strong>Paciente seleccionado:</strong> ${patient.name} ${patient.lastname}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    form.insertBefore(messageDiv, form.firstChild);
-    
-    // Desplazarse al formulario
-    form.scrollIntoView({ behavior: 'smooth' });
-}
-
-// Obtener lista de pacientes
-function getPatients() {
-    return JSON.parse(localStorage.getItem('medicalPatients')) || [];
-}
-
-// Cargar opciones de pacientes en el selector
-function loadPatientOptions() {
-    const patientSelect = document.getElementById('patientSelect');
-    patientSelect.innerHTML = '<option value="">Seleccionar paciente...</option>';
-    
-    const patients = getPatients();
-    patients.forEach(patient => {
-        const option = document.createElement('option');
-        option.value = patient.id;
-        option.textContent = `${patient.name} ${patient.lastname} (${patient.age} años)`;
-        patientSelect.appendChild(option);
-    });
 }
 
 // Establecer fechas por defecto
@@ -151,7 +183,7 @@ function removeMedication(button) {
 }
 
 // Crear nueva receta
-function createPrescription() {
+async function createPrescription() {
     const patientId = document.getElementById('patientSelect').value;
     const prescriptionDate = document.getElementById('prescriptionDate').value;
     const prescriptionValidity = document.getElementById('prescriptionValidity').value;
@@ -178,34 +210,47 @@ function createPrescription() {
         return;
     }
     
-    const newPrescription = {
-        id: Date.now(),
-        patientId: parseInt(patientId),
-        date: prescriptionDate,
-        validity: prescriptionValidity,
-        medications: medications,
-        generalInstructions: generalInstructions,
-        doctorNotes: doctorNotes,
-        status: 'active',
-        createdAt: new Date().toISOString()
-    };
-    
-    prescriptions.push(newPrescription);
-    savePrescriptions();
-    loadPrescriptionsList();
-    
-    // Reiniciar formulario
-    document.getElementById('prescriptionForm').reset();
-    resetMedicationsForm();
-    setDefaultDates();
-    
-    // Remover mensaje de selección si existe
-    const messageDiv = document.getElementById('patientSelectionMessage');
-    if (messageDiv) {
-        messageDiv.remove();
+    try {
+        // Obtener información del paciente seleccionado
+        const patientSelect = document.getElementById('patientSelect');
+        const selectedOption = patientSelect.options[patientSelect.selectedIndex];
+        const patientData = JSON.parse(selectedOption.getAttribute('data-patient'));
+        
+        const newPrescription = {
+            id: Date.now().toString(),
+            patientId: patientId,
+            patientData: patientData, // Guardar datos completos del paciente
+            date: prescriptionDate,
+            validity: prescriptionValidity,
+            medications: medications,
+            generalInstructions: generalInstructions,
+            doctorNotes: doctorNotes,
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            doctor: "Dr. Juan Pérez" // Podría obtenerse del usuario logueado
+        };
+        
+        prescriptions.push(newPrescription);
+        savePrescriptions();
+        loadPrescriptionsList();
+        
+        // Reiniciar formulario
+        document.getElementById('prescriptionForm').reset();
+        resetMedicationsForm();
+        setDefaultDates();
+        
+        // Remover mensaje de selección si existe
+        const messageDiv = document.getElementById('patientSelectionMessage');
+        if (messageDiv) {
+            messageDiv.remove();
+        }
+        
+        alert('Receta emitida correctamente.');
+        
+    } catch (error) {
+        console.error('Error creando receta:', error);
+        alert('Error al crear la receta. Por favor, intente nuevamente.');
     }
-    
-    alert('Receta emitida correctamente.');
 }
 
 // Obtener medicamentos del formulario
@@ -286,10 +331,8 @@ function loadPrescriptionsList() {
     // Ordenar recetas por fecha (más recientes primero)
     prescriptions.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    const patients = getPatients();
-    
     prescriptions.forEach(prescription => {
-        const patient = patients.find(p => p.id == prescription.patientId);
+        const patient = prescription.patientData;
         const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
         
         // Determinar estado de la receta
@@ -315,13 +358,13 @@ function loadPrescriptionsList() {
                 ).join('')}
             </p>
             <div class="prescription-actions">
-                <button class="btn btn-sm btn-hospital" onclick="viewPrescriptionDetails(${prescription.id})">
+                <button class="btn btn-sm btn-hospital" onclick="viewPrescriptionDetails('${prescription.id}')">
                     <i class="fas fa-eye"></i> Ver Detalles
                 </button>
-                <button class="btn btn-sm btn-outline-hospital" onclick="printPrescription(${prescription.id})">
+                <button class="btn btn-sm btn-outline-hospital" onclick="printPrescription('${prescription.id}')">
                     <i class="fas fa-print"></i> Imprimir
                 </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deletePrescription(${prescription.id})">
+                <button class="btn btn-sm btn-outline-danger" onclick="deletePrescription('${prescription.id}')">
                     <i class="fas fa-trash"></i> Eliminar
                 </button>
             </div>
@@ -334,7 +377,6 @@ function loadPrescriptionsList() {
 function filterPrescriptions(searchTerm) {
     const container = document.getElementById('prescriptionsList');
     const prescriptionCards = container.getElementsByClassName('prescription-card');
-    const patients = getPatients();
     
     for (let card of prescriptionCards) {
         const patientName = card.querySelector('h5').textContent.toLowerCase();
@@ -353,8 +395,7 @@ function viewPrescriptionDetails(prescriptionId) {
     const prescription = prescriptions.find(p => p.id === prescriptionId);
     if (!prescription) return;
     
-    const patients = getPatients();
-    const patient = patients.find(p => p.id == prescription.patientId);
+    const patient = prescription.patientData;
     const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
     
     const detailsContent = document.getElementById('prescriptionPreviewContent');
@@ -365,7 +406,7 @@ function viewPrescriptionDetails(prescriptionId) {
 }
 
 // Vista previa de receta
-function previewPrescription() {
+async function previewPrescription() {
     const patientId = document.getElementById('patientSelect').value;
     const prescriptionDate = document.getElementById('prescriptionDate').value;
     const prescriptionValidity = document.getElementById('prescriptionValidity').value;
@@ -383,23 +424,31 @@ function previewPrescription() {
         return;
     }
     
-    const patients = getPatients();
-    const patient = patients.find(p => p.id == patientId);
-    const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
-    
-    const previewPrescription = {
-        date: prescriptionDate,
-        validity: prescriptionValidity,
-        medications: medications,
-        generalInstructions: generalInstructions,
-        doctorNotes: doctorNotes
-    };
-    
-    const detailsContent = document.getElementById('prescriptionPreviewContent');
-    detailsContent.innerHTML = generatePrescriptionPreview(previewPrescription, patient, patientName, true);
-    
-    // Mostrar sección de vista previa
-    document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+    try {
+        // Obtener información del paciente seleccionado
+        const patientSelect = document.getElementById('patientSelect');
+        const selectedOption = patientSelect.options[patientSelect.selectedIndex];
+        const patient = JSON.parse(selectedOption.getAttribute('data-patient'));
+        const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
+        
+        const previewPrescription = {
+            date: prescriptionDate,
+            validity: prescriptionValidity,
+            medications: medications,
+            generalInstructions: generalInstructions,
+            doctorNotes: doctorNotes,
+            patientData: patient
+        };
+        
+        const detailsContent = document.getElementById('prescriptionPreviewContent');
+        detailsContent.innerHTML = generatePrescriptionPreview(previewPrescription, patient, patientName, true);
+        
+        // Mostrar sección de vista previa
+        document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error generando vista previa:', error);
+        alert('Error al generar la vista previa. Por favor, intente nuevamente.');
+    }
 }
 
 // Generar HTML para vista previa de receta
@@ -421,6 +470,7 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
                     <div class="col-md-6">
                         <p><strong>Paciente:</strong> ${patientName}</p>
                         ${patient ? `<p><strong>Edad:</strong> ${patient.age} años</p>` : ''}
+                        ${patient ? `<p><strong>Género:</strong> ${patient.gender}</p>` : ''}
                     </div>
                     <div class="col-md-6 text-end">
                         <p><strong>Fecha:</strong> ${formatDate(prescription.date)}</p>
@@ -433,11 +483,11 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
                 <h5>MEDICAMENTOS RECETADOS:</h5>
                 ${prescription.medications.map(med => `
                     <div class="medication-row">
-                        <div class="medication-name">${med.name} ${med.dose}</div>
+                        <div class="medication-name"><strong>${med.name} ${med.dose}</strong></div>
                         <div class="medication-details">
                             ${med.frequency}
                             ${med.duration ? ` por ${med.duration} días` : ''}
-                            ${med.specialInstructions ? `<br><small>${med.specialInstructions}</small>` : ''}
+                            ${med.specialInstructions ? `<br><small><strong>Instrucciones:</strong> ${med.specialInstructions}</small>` : ''}
                         </div>
                     </div>
                 `).join('')}
@@ -476,7 +526,7 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
         
         ${!isPreview ? `
             <div class="text-center mt-3">
-                <button class="btn btn-hospital" onclick="printPrescription(${prescription.id})">
+                <button class="btn btn-hospital" onclick="printPrescription('${prescription.id}')">
                     <i class="fas fa-print me-1"></i> Imprimir Receta
                 </button>
             </div>
@@ -494,8 +544,7 @@ function printPrescription(prescriptionId) {
     const prescription = prescriptions.find(p => p.id === prescriptionId);
     if (!prescription) return;
     
-    const patients = getPatients();
-    const patient = patients.find(p => p.id == prescription.patientId);
+    const patient = prescription.patientData;
     const patientName = patient ? `${patient.name} ${patient.lastname}` : 'Paciente desconocido';
     
     const printWindow = window.open('', '_blank');
@@ -512,7 +561,10 @@ function printPrescription(prescriptionId) {
                 .prescription-header h4 { color: #666; margin: 5px 0; }
                 .medication-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
                 .doctor-signature { margin-top: 50px; border-top: 1px solid #333; padding-top: 10px; display: inline-block; min-width: 200px; }
-                @media print { body { margin: 0; } }
+                @media print { 
+                    body { margin: 0; } 
+                    .prescription-preview { border: none; padding: 0; }
+                }
             </style>
         </head>
         <body>
