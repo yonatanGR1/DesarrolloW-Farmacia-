@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Historial Médico - Hospital La Paz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;background:#f4f7fc;color:#0f172a}
+    header{background:linear-gradient(90deg,#0b5ed7,#0ea5e9);color:#fff;padding:18px 20px}
+    .nav{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto}
+    .nav-left a{display:inline-flex;align-items:center;gap:.5rem;margin-right:.5rem;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;text-decoration:none;font-weight:600}
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:20px}
+    .brand i{font-style:normal;background:#fff;color:#0b5ed7;border-radius:10px;padding:4px 8px;font-weight:800}
+    .nav-right a{color:#fff;text-decoration:none;font-weight:600;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.12)}
+    .hero{max-width:1100px;margin:20px auto 10px;background:linear-gradient(180deg,rgba(14,165,233,.15),rgba(14,165,233,0));padding:32px 22px;border-radius:18px;text-align:center}
+    h1{margin:0 0 6px;font-size:34px}
+    main{max-width:1100px;margin:10px auto 40px;padding:0 10px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    @media (max-width: 960px){ main{grid-template-columns:1fr} }
+    .card{background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.06);padding:18px}
+    .card h2{margin:2px 0 12px;font-size:20px;display:flex;align-items:center;gap:.5rem}
+    .divider{height:3px;background:linear-gradient(90deg,#06b6d4,#0ea5e9,#38bdf8);opacity:.7;border-radius:4px;margin:6px 0 14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 10px;text-align:left}
+    th{background:#0b5ed7;color:#fff}
+    tr:nth-child(even){background:#f8fafc}
+    .empty{color:#6b7280;text-align:center;padding:24px 8px}
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav">
+      <div class="nav-left">
+        <a href="javascript:void(0)" id="navInicio">🏠 Inicio</a>
+        <a href="javascript:void(0)" id="navCitas">🗓️ Citas</a>
+      </div>
+      <div class="brand"><i>HL</i> Hospital La Paz</div>
+      <div class="nav-right"><a href="javascript:void(0)" id="btnPerfilTop">👤 Mi Perfil</a></div>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Mi Historial Médico</h1>
+    <p>Consulte sus medicamentos, tratamientos y perfil actual</p>
+  </section>
+
+  <main>
+    <section class="card">
+      <h2>💊 Mis Medicamentos</h2>
+      <div class="divider"></div>
+      <div id="medsContainer" class="empty">No hay medicamentos registrados</div>
+    </section>
+
+    <section class="card">
+      <h2>📝 Mi Historial Clínico</h2>
+      <div class="divider"></div>
+      <table>
+        <thead><tr><th>Fecha</th><th>Diagnóstico</th><th>Tratamiento</th><th>Médico</th></tr></thead>
+        <tbody id="historialTbody"><tr><td colspan="4" class="empty">No hay registros médicos</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById('navInicio').onclick = () => location.href = '../../Login/public/index.html';
+    document.getElementById('navCitas').onclick = () => location.href = '../../calendario.html';
+    document.getElementById('btnPerfilTop').onclick = () => alert('Aquí se mostrará la información del paciente');
+
+    async function getJSON(url){
+      const r = await fetch(url);
+      if(!r.ok) throw new Error('Error en '+url);
+      return r.json();
+    }
+
+    async function cargarDatos(){
+      try{
+        const users = await getJSON('/api/users');
+        let user = users.find(u=>u.rol==='paciente') || users[0];
+        if(!user) return;
+
+        const meds = (user.medicina||[]).map(m=>({nombre:m.nombre||'-', dosis:m.dosis||'-'}));
+        const hist = (user.historial||[]).map(h=>({fecha:h.fecha||'-', diagnostico:h.descripcion||'-', tratamiento:'-', doctor:'-'}));
+        const medsContainer=document.getElementById('medsContainer');
+        if(meds.length){
+          medsContainer.innerHTML='<ul>'+meds.map(m=>`<li><b>${m.nombre}</b> - ${m.dosis}</li>`).join('')+'</ul>';
+        }
+        const tbody=document.getElementById('historialTbody');
+        tbody.innerHTML=hist.length?hist.map(h=>`<tr><td>${h.fecha}</td><td>${h.diagnostico}</td><td>${h.tratamiento}</td><td>${h.doctor}</td></tr>`).join(''):`<tr><td colspan='4' class='empty'>No hay registros médicos</td></tr>`;
+      }catch(e){console.error(e);}
+    }
+    cargarDatos();
+  </script>
+</body>
+</html>
