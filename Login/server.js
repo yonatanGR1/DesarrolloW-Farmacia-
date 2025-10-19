@@ -314,3 +314,4 @@ app.use('/api/citas', citasRoutes);
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+

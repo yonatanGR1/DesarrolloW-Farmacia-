@@ -40,7 +40,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 if (data.rol === 'doctor') {
                     window.location.href = './Presentation/DoctorInterface/DoctorInterface.html';
                 } else {
-                    window.location.href = '../Presentation/PatientInterface/PatientHistory.html';
+                    window.location.href = '../Presentation/PatientInterface/PacienteH.html';
                     //window.location.href = 'PatientInterface.html';
                 }
             }, 1000);

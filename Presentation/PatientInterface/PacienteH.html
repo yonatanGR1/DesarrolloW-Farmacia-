@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Portal del Paciente - Hospital La Paz</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos personalizados -->
+    <link rel="stylesheet" href="PacienteH.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-hospital">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-hospital me-2"></i>Hospital La Paz
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showSection('resumen')">
+                            <i class="fas fa-home me-1"></i> Resumen
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('recetas')">
+                            <i class="fas fa-prescription me-1"></i> Recetas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('citas')">
+                            <i class="fas fa-calendar-check me-1"></i> Citas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('diagnosticos')">
+                            <i class="fas fa-file-medical me-1"></i> Diagnósticos
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="navbar-text me-3">
+                        <i class="fas fa-user me-1"></i> <span id="user-display-name">Paciente</span>
+                    </span>
+                    <button class="btn btn-outline-hospital" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container my-4">
+        <!-- Tarjetas de Resumen -->
+        <div class="row mb-4" id="resumen-cards">
+            <div class="col-md-3 mb-3">
+                <div class="card summary-card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-prescription fa-2x mb-2"></i>
+                        <h5 id="total-recetas">0</h5>
+                        <p class="mb-0">Recetas Activas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card summary-card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                        <h5 id="total-citas">0</h5>
+                        <p class="mb-0">Próximas Citas</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card summary-card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-medical fa-2x mb-2"></i>
+                        <h5 id="total-diagnosticos">0</h5>
+                        <p class="mb-0">Diagnósticos</p>
+                    </div>
+                </div>
+            </div>
+           
+
+        <!-- Sección de Resumen -->
+        <div class="section" id="resumen-section">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-home me-2"></i>Resumen General
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Información del Paciente</h5>
+                            <div id="patient-info">
+                                <p><strong>Nombre:</strong> <span id="patient-name">Cargando...</span></p>
+                                <p><strong>Edad:</strong> <span id="patient-age">Cargando...</span></p>
+                                <p><strong>Género:</strong> <span id="patient-gender">Cargando...</span></p>
+                                <p><strong>Contacto:</strong> <span id="patient-contact">Cargando...</span></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Próxima Cita</h5>
+                            <div id="next-appointment" class="text-center p-3 bg-light rounded">
+                                <p class="mb-1" id="next-appointment-date">No hay citas programadas</p>
+                                <small class="text-muted" id="next-appointment-doctor"></small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h5>Última Receta</h5>
+                            <div id="last-prescription" class="p-3 bg-light rounded">
+                                <p class="mb-1" id="last-prescription-date">No hay recetas recientes</p>
+                                <small class="text-muted" id="last-prescription-doctor"></small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Último Diagnóstico</h5>
+                            <div id="last-diagnosis" class="p-3 bg-light rounded">
+                                <p class="mb-1" id="last-diagnosis-date">No hay diagnósticos recientes</p>
+                                <small class="text-muted" id="last-diagnosis-doctor"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Recetas -->
+        <div class="section" id="recetas-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-prescription me-2"></i>Mis Recetas Médicas
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="search-prescriptions" placeholder="Buscar en recetas...">
+                    </div>
+                    <div id="prescriptions-list">
+                        <p class="text-center text-muted">Cargando recetas...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Citas -->
+        <div class="section" id="citas-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-calendar-check me-2"></i>Mis Citas Médicas
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="search-appointments" placeholder="Buscar en citas...">
+                    </div>
+                    <div id="appointments-list">
+                        <p class="text-center text-muted">Cargando citas...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Diagnósticos -->
+        <div class="section" id="diagnosticos-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-file-medical me-2"></i>Mis Diagnósticos
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="search-diagnoses" placeholder="Buscar en diagnósticos...">
+                    </div>
+                    <div id="diagnoses-list">
+                        <p class="text-center text-muted">Cargando diagnósticos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="text-center mt-5">
+        <div class="container">
+            <p class="mb-0">Portal del Paciente - Hospital La Paz &copy; 2023</p>
+            <p class="mb-0">Para emergencias, llame al: <strong>123-456-7890</strong></p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Archivos JavaScript separados -->
+    <script src="PacienteH.js"></script>
+</body>
+</html>
