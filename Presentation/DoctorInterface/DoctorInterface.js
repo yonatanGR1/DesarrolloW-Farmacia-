@@ -12,58 +12,83 @@ let doctorPrescriptions = [];
 
 // Inicializar interfaz de médico
 async function initializeDoctorInterface() {
-    await loadDoctorDashboardStats();
-    await loadTodayAppointments();
-    await loadDoctorPatients();
-    await loadDoctorAppointments();
-    await loadDoctorPrescriptions();
-    
-    // Configurar event listeners para navegación de médico
-    const doctorNavButtons = document.querySelectorAll('.doctor-nav-btn');
-    doctorNavButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetSection = this.getAttribute('data-section');
-            if (targetSection) {
-                showDoctorSection(targetSection);
-            }
-        });
-    });
+    try {
+        await loadDoctorDashboardStats();
+        await loadTodayAppointments();
+        await loadDoctorPatients();
+        await loadDoctorAppointments();
+        await loadDoctorPrescriptions();
+        
+        console.log('Interfaz de médico inicializada correctamente');
+    } catch (error) {
+        console.error('Error inicializando interfaz:', error);
+        showErrorNotification('Error al cargar los datos. Por favor, recargue la página.');
+    }
 }
 
 // Cargar estadísticas del dashboard
 async function loadDoctorDashboardStats() {
     try {
+        console.log('Cargando estadísticas del dashboard...');
+        
         // Cargar total de pacientes
         const patientsResponse = await fetch(API_PACIENTES);
         if (patientsResponse.ok) {
             const pacientes = await patientsResponse.json();
-            document.getElementById('total-patients').textContent = pacientes.length;
+            document.getElementById('total-patients').textContent = pacientes.length || 0;
+        } else {
+            console.warn('Error cargando pacientes para estadísticas');
         }
         
-        // Cargar citas de hoy
-        const today = new Date().toISOString().split('T')[0];
-        const appointmentsResponse = await fetch(`${API_CITAS}/hoy`);
-        if (appointmentsResponse.ok) {
-            const citasHoy = await appointmentsResponse.json();
-            document.getElementById('total-appointments').textContent = citasHoy.length;
+        // Cargar citas de hoy - usando enfoque alternativo si el endpoint especial falla
+        let citasHoy = [];
+        try {
+            const todayResponse = await fetch(`${API_CITAS}/hoy`);
+            if (todayResponse.ok) {
+                citasHoy = await todayResponse.json();
+            } else {
+                // Si falla el endpoint específico, intentar con el general y filtrar
+                console.warn('Endpoint /hoy no disponible, usando filtrado local');
+                const allAppointmentsResponse = await fetch(API_CITAS);
+                if (allAppointmentsResponse.ok) {
+                    const allAppointments = await allAppointmentsResponse.json();
+                    const today = new Date().toISOString().split('T')[0];
+                    citasHoy = allAppointments.filter(appointment => 
+                        appointment.fechaCita && appointment.fechaCita.split('T')[0] === today
+                    );
+                }
+            }
+        } catch (error) {
+            console.warn('Error cargando citas de hoy:', error);
         }
         
-        // Cargar total de recetas (asumiendo que hay una API para recetas)
-        const prescriptionsResponse = await fetch(API_RECETAS);
-        if (prescriptionsResponse.ok) {
-            const recetas = await prescriptionsResponse.json();
-            document.getElementById('total-prescriptions').textContent = recetas.length;
-        }
+        document.getElementById('total-appointments').textContent = citasHoy.length;
         
         // Calcular tareas pendientes (citas de hoy no completadas)
-        if (appointmentsResponse.ok) {
-            const citasHoy = await appointmentsResponse.json();
-            const pendientes = citasHoy.filter(cita => cita.estado === 'programada').length;
-            document.getElementById('pending-tasks').textContent = pendientes;
+        const pendientes = citasHoy.filter(cita => 
+            cita.estado === 'programada' || cita.estado === 'en_progreso'
+        ).length;
+        document.getElementById('pending-tasks').textContent = pendientes;
+        
+        // Cargar total de recetas
+        try {
+            const prescriptionsResponse = await fetch(API_RECETAS);
+            if (prescriptionsResponse.ok) {
+                const recetas = await prescriptionsResponse.json();
+                document.getElementById('total-prescriptions').textContent = recetas.length || 0;
+            }
+        } catch (error) {
+            console.warn('Error cargando recetas:', error);
+            document.getElementById('total-prescriptions').textContent = '0';
         }
         
     } catch (error) {
         console.error('Error cargando estadísticas:', error);
+        // Establecer valores por defecto en caso de error
+        document.getElementById('total-patients').textContent = '0';
+        document.getElementById('total-appointments').textContent = '0';
+        document.getElementById('total-prescriptions').textContent = '0';
+        document.getElementById('pending-tasks').textContent = '0';
     }
 }
 
@@ -79,17 +104,51 @@ async function loadTodayAppointments() {
         container.style.display = 'none';
         empty.style.display = 'none';
         
-        // Obtener fecha de hoy en formato YYYY-MM-DD
-        const today = new Date().toISOString().split('T')[0];
+        let todayAppointments = [];
         
-        // Hacer petición a la API para obtener citas de hoy
-        const response = await fetch(`${API_CITAS}/hoy`);
-        
-        if (!response.ok) {
-            throw new Error('Error al cargar citas de hoy');
+        // Intentar múltiples enfoques para obtener las citas de hoy
+        try {
+            // Enfoque 1: Endpoint específico para hoy
+            const response = await fetch(`${API_CITAS}/hoy`);
+            if (response.ok) {
+                todayAppointments = await response.json();
+                console.log('Citas de hoy cargadas via endpoint /hoy:', todayAppointments.length);
+            } else {
+                throw new Error(`Endpoint /hoy no disponible: ${response.status}`);
+            }
+        } catch (endpointError) {
+            console.warn('Error con endpoint /hoy, intentando enfoque alternativo:', endpointError);
+            
+            // Enfoque 2: Obtener todas las citas y filtrar localmente
+            try {
+                const allAppointmentsResponse = await fetch(API_CITAS);
+                if (allAppointmentsResponse.ok) {
+                    const allAppointments = await allAppointmentsResponse.json();
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    todayAppointments = allAppointments.filter(appointment => {
+                        if (!appointment.fechaCita) return false;
+                        
+                        // Manejar diferentes formatos de fecha
+                        const appointmentDate = new Date(appointment.fechaCita);
+                        const todayDate = new Date();
+                        
+                        return (
+                            appointmentDate.getDate() === todayDate.getDate() &&
+                            appointmentDate.getMonth() === todayDate.getMonth() &&
+                            appointmentDate.getFullYear() === todayDate.getFullYear()
+                        );
+                    });
+                    
+                    console.log('Citas de hoy filtradas localmente:', todayAppointments.length);
+                } else {
+                    throw new Error('No se pudieron cargar las citas');
+                }
+            } catch (filterError) {
+                console.error('Error en enfoque alternativo:', filterError);
+                throw new Error('No se pudieron cargar las citas de hoy');
+            }
         }
-        
-        const todayAppointments = await response.json();
         
         // Ocultar estado de carga
         loading.style.display = 'none';
@@ -105,62 +164,82 @@ async function loadTodayAppointments() {
         
         // Ordenar citas por hora
         todayAppointments.sort((a, b) => {
-            return a.horaCita.localeCompare(b.horaCita);
+            return (a.horaCita || '').localeCompare(b.horaCita || '');
         });
         
         // Mostrar cada cita
         todayAppointments.forEach(appointment => {
-            const appointmentElement = document.createElement('div');
-            appointmentElement.className = `list-group-item list-group-item-action ${getAppointmentStatusClass(appointment.estado)}`;
-            appointmentElement.innerHTML = `
-                <div class="d-flex w-100 justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0">${appointment.pacienteNombre} ${appointment.pacienteApellido}</h6>
-                            <span class="badge ${getStatusBadgeClass(appointment.estado)}">${appointment.estado}</span>
-                        </div>
-                        <div class="mb-2">
-                            <i class="fas fa-clock me-1 text-muted"></i>
-                            <strong>${formatTime(appointment.horaCita)}</strong>
-                        </div>
-                        <p class="mb-1">${appointment.motivo || 'Consulta médica'}</p>
-                        <small class="text-muted">
-                            <i class="fas fa-user-md me-1"></i>${appointment.doctorNombre || 'Dr. Juan Pérez'}
-                        </small>
-                    </div>
-                    <div class="btn-group-vertical ms-3">
-                        <button class="btn btn-sm btn-outline-hospital" onclick="startAppointment('${appointment._id}')" ${appointment.estado !== 'programada' ? 'disabled' : ''}>
-                            <i class="fas fa-play"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appointment._id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="cancelTodayAppointment('${appointment._id}')" ${appointment.estado === 'cancelada' ? 'disabled' : ''}>
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
+            const appointmentElement = createAppointmentElement(appointment);
             container.appendChild(appointmentElement);
         });
         
     } catch (error) {
         console.error('Error cargando citas de hoy:', error);
         loading.style.display = 'none';
+        
+        // Mostrar mensaje de error específico
         container.innerHTML = `
-            <div class="alert alert-danger text-center">
+            <div class="alert alert-warning text-center">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al cargar las citas de hoy. Por favor, intente nuevamente.
+                <strong>No se pudieron cargar las citas de hoy</strong>
+                <p class="mb-0 mt-2">${error.message}</p>
+                <button class="btn btn-sm btn-hospital mt-2" onclick="loadTodayAppointments()">
+                    <i class="fas fa-redo me-1"></i> Reintentar
+                </button>
             </div>
         `;
         container.style.display = 'block';
     }
 }
 
+// Función auxiliar para crear elementos de cita
+function createAppointmentElement(appointment) {
+    const appointmentElement = document.createElement('div');
+    const patientName = `${appointment.pacienteNombre || ''} ${appointment.pacienteApellido || ''}`.trim() || 'Paciente no especificado';
+    const appointmentTime = appointment.horaCita || 'Hora no especificada';
+    const appointmentReason = appointment.motivo || 'Consulta médica';
+    const doctorName = appointment.doctorNombre || 'Dr. Juan Pérez';
+    const status = appointment.estado || 'programada';
+    
+    appointmentElement.className = `list-group-item list-group-item-action ${getAppointmentStatusClass(status)}`;
+    appointmentElement.innerHTML = `
+        <div class="d-flex w-100 justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">${patientName}</h6>
+                    <span class="badge ${getStatusBadgeClass(status)}">${status}</span>
+                </div>
+                <div class="mb-2">
+                    <i class="fas fa-clock me-1 text-muted"></i>
+                    <strong>${formatTime(appointmentTime)}</strong>
+                </div>
+                <p class="mb-1">${appointmentReason}</p>
+                <small class="text-muted">
+                    <i class="fas fa-user-md me-1"></i>${doctorName}
+                </small>
+            </div>
+            <div class="btn-group-vertical ms-3">
+                <button class="btn btn-sm btn-outline-hospital" onclick="startAppointment('${appointment._id}')" ${status !== 'programada' ? 'disabled' : ''}>
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appointment._id}')">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="cancelTodayAppointment('${appointment._id}')" ${status === 'cancelada' ? 'disabled' : ''}>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return appointmentElement;
+}
+
 // Función para refrescar las citas de hoy
 async function refreshTodayAppointments() {
+    console.log('Actualizando citas de hoy...');
     await loadTodayAppointments();
-    await loadDoctorDashboardStats(); // Actualizar contadores también
+    await loadDoctorDashboardStats();
 }
 
 // Cargar pacientes del médico desde MongoDB
@@ -436,16 +515,6 @@ function showDoctorSection(sectionId) {
     
     // Mostrar la sección seleccionada
     document.getElementById(sectionId).classList.remove('hidden');
-    
-    // Actualizar botones activos
-    const buttons = document.querySelectorAll('.doctor-nav-btn');
-    buttons.forEach(button => button.classList.remove('active'));
-    
-    // Encontrar y activar el botón correspondiente
-    const activeButton = Array.from(buttons).find(btn => btn.getAttribute('data-section') === sectionId);
-    if (activeButton) {
-        activeButton.classList.add('active');
-    }
 }
 
 // Funciones de utilidad
@@ -484,7 +553,11 @@ function getAppointmentStatusClass(status) {
 }
 
 function formatAppointmentDate(dateString) {
+    if (!dateString) return 'Fecha no especificada';
+    
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -500,20 +573,64 @@ function formatAppointmentDate(dateString) {
 }
 
 function formatTime(timeString) {
+    if (!timeString) return '--:--';
     // Asumiendo que timeString está en formato "HH:MM"
     const [hours, minutes] = timeString.split(':');
     return `${hours}:${minutes}`;
 }
 
 function formatDate(dateString) {
+    if (!dateString) return 'Fecha no especificada';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+    return date.toLocaleDateString('es-ES', options);
 }
 
 function isSameDay(date1, date2) {
     return date1.getDate() === date2.getDate() &&
            date1.getMonth() === date2.getMonth() &&
            date1.getFullYear() === date2.getFullYear();
+}
+
+// Función para mostrar notificaciones de error
+function showErrorNotification(message) {
+    // Crear notificación toast de Bootstrap
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+    
+    const toastElement = document.createElement('div');
+    toastElement.className = 'toast align-items-center text-white bg-danger border-0';
+    toastElement.setAttribute('role', 'alert');
+    toastElement.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toastElement);
+    
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Eliminar el toast después de que se oculte
+    toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
 }
 
 // Funciones de acción para el médico
