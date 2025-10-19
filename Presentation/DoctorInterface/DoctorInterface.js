@@ -664,12 +664,10 @@ function viewPrescription(prescriptionId) {
 // Función de cierre de sesión
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-        alert('Sesión cerrada correctamente.');
-        // En una implementación real, aquí redirigirías al login
-        // window.location.href = 'login.html';
+        localStorage.removeItem('currentPatient');
+        window.location.href = '/index.html';
     }
 }
-
 // Inicializar la interfaz cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     initializeDoctorInterface();

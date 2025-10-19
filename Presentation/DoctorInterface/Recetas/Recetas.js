@@ -648,11 +648,10 @@ function formatDate(dateString) {
 // Función de cierre de sesión
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-        alert('Sesión cerrada correctamente.');
-        window.location.href = '../DoctorInterface.html';
+        localStorage.removeItem('currentPatient');
+        window.location.href = '/index.html';
     }
 }
-
 // Inicializar la gestión de recetas cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     initializePrescriptionManager();

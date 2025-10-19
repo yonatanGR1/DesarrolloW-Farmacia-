@@ -396,6 +396,6 @@ function getAppointmentBadgeClass(status) {
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
         localStorage.removeItem('currentPatient');
-        window.location.href = 'Login.html';
+        window.location.href = '/index.html';
     }
 }

@@ -358,8 +358,8 @@ function formatAppointmentDate(dateString) {
 // Función de cierre de sesión
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-        alert('Sesión cerrada correctamente.');
-        window.location.href = '../DoctorInterface.html';
+        localStorage.removeItem('currentPatient');
+        window.location.href = '/index.html';
     }
 }
 
