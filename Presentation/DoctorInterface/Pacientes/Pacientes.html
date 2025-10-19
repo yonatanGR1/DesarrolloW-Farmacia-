@@ -26,19 +26,21 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../DoctorInterface.html"><i class="fas fa-home me-1"></i> Inicio</a>
-                    </li>
-                    
                 </ul>
                 <div class="d-flex align-items-center">
-                    <span class="navbar-text me-3">
-                        <i class="fas fa-user me-1"></i> <span id="user-display-name">Dr. </span>
-                    </span>
-                    <button class="btn btn-outline-hospital" onclick="logout()">
-                        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
-                    </button>
-                </div>
+    <div class="user-info me-3">
+        <div class="user-avatar">
+            <i class="fas fa-user-md"></i>
+        </div>
+        <div class="user-details">
+            <span class="user-name" id="user-display-name">Cargando...</span>
+            <small class="user-role" id="user-role">Médico</small>
+        </div>
+    </div>
+    <button class="btn btn-outline-hospital" onclick="logout()">
+        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+    </button>
+</div>
             </div>
         </div>
     </nav>

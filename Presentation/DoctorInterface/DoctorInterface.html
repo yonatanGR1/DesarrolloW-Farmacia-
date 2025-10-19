@@ -29,9 +29,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="fas fa-home me-1"></i> Inicio</a>
-                    </li>
                 </ul>
                 <div class="d-flex align-items-center">
                     <span class="navbar-text me-3">
@@ -57,11 +54,6 @@
                                 <i class="fas fa-user-md me-2"></i>Panel de Control Médico
                             </div>
                             <div class="card-body">
-                                <div class="alert alert-info">
-                                    <h5>Bienvenido al panel médico</h5>
-                                    <p class="mb-0">Desde aquí puede gestionar los tratamientos de sus pacientes, revisar historiales médicos y programar recordatorios.</p>
-                                </div>
-
                                 <!-- Estadísticas Rápidas -->
                                 <div class="row mb-4">
                                     <div class="col-md-3 col-6">
@@ -109,7 +101,7 @@
                                                 <i class="fas fa-users feature-icon"></i>
                                                 <h5>Gestión de Pacientes</h5>
                                                 <p class="text-muted">Registrar, editar y gestionar información de pacientes</p>
-                                                <a href="Pacientes/Pacientes.html" class="btn btn-hospital">Gestionar Pacientes</a>
+                                                <button class="btn btn-hospital" onclick="showDoctorSection('doctor-patients')">Gestionar Pacientes</button>
                                             </div>
                                         </div>
                                     </div>
@@ -119,7 +111,7 @@
                                                 <i class="fas fa-prescription feature-icon"></i>
                                                 <h5>Recetas Médicas</h5>
                                                 <p class="text-muted">Crear y gestionar recetas médicas</p>
-                                                <a href="Recetas/Recetas.html" class="btn btn-hospital">Gestionar Recetas</a>
+                                                <button class="btn btn-hospital" onclick="showDoctorSection('doctor-prescriptions')">Gestionar Recetas</button>
                                             </div>
                                         </div>
                                     </div>
@@ -129,40 +121,44 @@
                                                 <i class="fas fa-calendar-check feature-icon"></i>
                                                 <h5>Gestión de Citas</h5>
                                                 <p class="text-muted">Programar y administrar citas médicas</p>
-                                                <a href="Citas/Citas.html" class="btn btn-hospital">Gestionar Citas</a>
+                                                <button class="btn btn-hospital" onclick="showDoctorSection('doctor-appointments')">Gestionar Citas</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                               
-
                                 <!-- Próximas Citas -->
                                 <div class="row mt-4">
                                     <div class="col-12">
                                         <div class="card">
-                                            <div class="card-header">
-                                                <i class="fas fa-clock me-2"></i>Próximas Citas
+                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="fas fa-clock me-2"></i>Citas para Hoy
+                                                </div>
+                                                <button class="btn btn-sm btn-outline-hospital" onclick="refreshTodayAppointments()">
+                                                    <i class="fas fa-sync-alt"></i> Actualizar
+                                                </button>
                                             </div>
                                             <div class="card-body">
-                                                <div class="list-group" id="upcoming-appointments">
-                                                    <div class="list-group-item">
-                                                        <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">Carlos Mendoza</h6>
-                                                            <small>Hoy, 10:30 AM</small>
-                                                        </div>
-                                                        <p class="mb-1">Control rutinario - Hipertensión</p>
+                                                <div id="today-appointments-loading" class="text-center py-3">
+                                                    <div class="spinner-border text-hospital" role="status">
+                                                        <span class="visually-hidden">Cargando...</span>
                                                     </div>
-                                                    <div class="list-group-item">
-                                                        <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">María López</h6>
-                                                            <small>Mañana, 11:15 AM</small>
-                                                        </div>
-                                                        <p class="mb-1">Dolor articular - Seguimiento</p>
-                                                    </div>
+                                                    <p class="mt-2">Cargando citas para hoy...</p>
+                                                </div>
+                                                <div class="list-group" id="today-appointments-list" style="display: none;">
+                                                    <!-- Las citas de hoy se cargarán aquí -->
+                                                </div>
+                                                <div id="today-appointments-empty" class="text-center py-4" style="display: none;">
+                                                    <i class="fas fa-calendar-times text-muted fs-1 mb-3"></i>
+                                                    <h5 class="text-muted">No hay citas programadas para hoy</h5>
+                                                    <p class="text-muted">Todas las citas de hoy han sido completadas o no hay citas agendadas.</p>
+                                                    <button class="btn btn-hospital" onclick="showDoctorSection('doctor-appointments')">
+                                                        <i class="fas fa-plus me-1"></i> Programar Nueva Cita
+                                                    </button>
                                                 </div>
                                                 <div class="text-center mt-3">
-                                                    <a href="Citas/Citas.html" class="btn btn-outline-hospital">Ver Todas las Citas</a>
+                                                    <a href="Citas/Citas.html" class="btn btn-outline-hospital">Ir a Gestión Completa de Citas</a>
                                                 </div>
                                             </div>
                                         </div>
@@ -170,38 +166,7 @@
                                 </div>
 
                                 <!-- Recetas Recientes -->
-                                <div class="row mt-4">
-                                    <div class="col-12">
-                                        <div class="card">
-                                            <div class="card-header">
-                                                <i class="fas fa-prescription me-2"></i>Recetas Recientes
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="list-group" id="recent-prescriptions">
-                                                    <div class="list-group-item">
-                                                        <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">Juan Pérez</h6>
-                                                            <small class="text-success">Activa</small>
-                                                        </div>
-                                                        <p class="mb-1">Inhalador Salbutamol - Cada 8 horas</p>
-                                                        <small>Emitida: 15 Nov 2023</small>
-                                                    </div>
-                                                    <div class="list-group-item">
-                                                        <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">Carlos Mendoza</h6>
-                                                            <small class="text-success">Activa</small>
-                                                        </div>
-                                                        <p class="mb-1">Lisinopril 10mg - Metformina 850mg</p>
-                                                        <small>Emitida: 14 Nov 2023</small>
-                                                    </div>
-                                                </div>
-                                                <div class="text-center mt-3">
-                                                    <a href="Recetas/Recetas.html" class="btn btn-outline-hospital">Ver Todas las Recetas</a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                               
                             </div>
                         </div>
                     </div>
@@ -253,7 +218,6 @@
                             <!-- Las citas se cargarán aquí mediante JavaScript -->
                         </div>
                     </div>
-                    <img src="./Pacientes/Pacientes.html" alt="">
                 </div>
             </div>
 
@@ -288,7 +252,6 @@
         <div class="container">
             <p class="mb-0">Sistema de Gestión Médica - Hospital La Paz &copy; 2023</p>
             <p class="mb-0">Para emergencias, llame al: <strong>123-456-7890</strong></p>
-           
         </div>
     </footer>
 

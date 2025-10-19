@@ -365,5 +365,6 @@ function logout() {
 
 // Inicializar la gestión de citas cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    
     initializeAppointmentManager();
 });

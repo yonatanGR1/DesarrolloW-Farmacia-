@@ -587,7 +587,7 @@ async function printPrescription(prescriptionId) {
                     body { font-family: Arial, sans-serif; margin: 20px; }
                     .prescription-preview { background: white; border: 2px solid #333; padding: 30px; }
                     .prescription-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-                    .prescription-header h2 { color: #2c7db1; margin: 0; }
+                    .prescription-header h2 { color: #d9e4eaff; margin: 0; }
                     .prescription-header h4 { color: #666; margin: 5px 0; }
                     .medication-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
                     .doctor-signature { margin-top: 50px; border-top: 1px solid #333; padding-top: 10px; display: inline-block; min-width: 200px; }

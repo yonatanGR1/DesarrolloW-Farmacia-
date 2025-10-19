@@ -1,7 +1,20 @@
 // Pacientes.js - Funcionalidad específica para gestión de pacientes
 
 // Datos para la gestión de pacientes
-
+function loadDoctorName() {
+    try {
+        const doctorData = localStorage.getItem('currentDoctor');
+        if (doctorData) {
+            const doctor = JSON.parse(doctorData);
+            const userDisplayName = document.getElementById('user-display-name');
+            if (userDisplayName) {
+                userDisplayName.textContent = doctor.nombre;
+            }
+        }
+    } catch (error) {
+        console.error('Error cargando nombre del doctor:', error);
+    }
+}
 
 // Inicializar gestión de pacientes
 function initializePatientManager() {
@@ -334,6 +347,7 @@ function logout() {
 
 // Inicializar la gestión de pacientes cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    loadDoctorName();
     initializePatientManager();
 });
 

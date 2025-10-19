@@ -52,20 +52,14 @@
     border-radius: 10px 10px 0 0 !important;
 }
 
-/* Estilo para la alerta de bienvenida */
-.alert-hospital {
-    background-color: rgba(44, 125, 177, 0.1);
-    border-color: rgba(44, 125, 177, 0.2);
-    color: var(--hospital-dark);
-    border-radius: 8px;
-    border-left: 4px solid var(--hospital-primary);
-}
 
 /* Ajustes de espaciado */
 .card-body {
     padding: 1.5rem;
 }
-
+.list-group-item.active{
+    background-color:lightblue;
+}
 .mt-4 {
     margin-top: 2rem !important;
 }
@@ -129,7 +123,7 @@ footer strong {
 
 /* Estilos para las tarjetas de recetas */
 .card {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: 0 0.125rem 0.25rem rgba(207, 55, 17, 0.075);
     transition: box-shadow 0.15s ease-in-out;
 }
 
@@ -146,7 +140,7 @@ footer strong {
 
 .prescription-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 8px rgba(213, 13, 13, 0.1);
 }
 
 .prescription-card.expired {
@@ -207,7 +201,7 @@ footer strong {
 
 /* Estilos para vista previa de receta */
 .prescription-preview {
-    background: white;
+    background: rgb(255, 255, 255);
     border: 2px solid #333;
     padding: 30px;
     font-family: 'Arial', sans-serif;
