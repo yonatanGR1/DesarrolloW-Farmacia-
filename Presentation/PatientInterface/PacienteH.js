@@ -1,52 +1,83 @@
-// DoctorInterface.js - Portal del Paciente (SOLO LECTURA)
+// Agrega esto al inicio de PacienteH.js para debug
+console.log('=== INICIANDO PORTAL PACIENTE ===');
+console.log('currentUser en localStorage:', localStorage.getItem('currentUser'));
+console.log('currentPatient en localStorage:', localStorage.getItem('currentPatient'));
+
+const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+if (!currentUser) {
+    console.error('❌ NO HAY USUARIO EN LOCALSTORAGE');
+} else {
+    console.log('✅ Usuario encontrado:', currentUser);
+}
+// PacienteH.js - Portal del Paciente (SOLO LECTURA)
 let currentPatient = null;
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
+    checkAuthentication();
     initializePatientPortal();
 });
 
-async function initializePatientPortal() {
-    // Obtener datos del paciente desde el localStorage o sesión
-    await loadPatientData();
-    await loadAllPatientData();
-    setupEventListeners();
+// Verificar autenticación del paciente
+function checkAuthentication() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     
-    // Mostrar mensaje de bienvenida
-    if (currentPatient) {
-        document.getElementById('welcome-message').textContent = 
-            `Bienvenido, ${currentPatient.nombre}`;
+    if (!currentUser) {
+        alert('No hay sesión activa. Por favor, inicie sesión.');
+        window.location.href = '/index.html';
+        return;
+    }
+    
+    if (currentUser.rol !== 'paciente') {
+        alert('Acceso denegado. Esta sección es solo para pacientes.');
+        window.location.href = '/index.html';
+        return;
     }
 }
 
-// Cargar datos del paciente actual
+async function initializePatientPortal() {
+    await loadPatientData();
+    await loadAllPatientData();
+    setupEventListeners();
+}
+
+// Cargar datos del paciente actual desde MongoDB
 async function loadPatientData() {
     try {
-        // En un sistema real, esto vendría de tu API de autenticación
-        // Por ahora, usaremos datos de ejemplo o del localStorage
+        // Obtener el usuario actual del localStorage
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         
-        // Intentar obtener del localStorage primero
-        const savedPatient = localStorage.getItem('currentPatient');
-        if (savedPatient) {
-            currentPatient = JSON.parse(savedPatient);
-        } else {
-            // Datos de ejemplo para demostración
-            currentPatient = {
-                _id: 'patient-123',
-                nombre: 'Juan Carlos',
-                apellido: 'García López',
-                edad: 45,
-                genero: 'Masculino',
-                telefono: '555-123-4567',
-                email: 'juan.garcia@email.com'
-            };
-            localStorage.setItem('currentPatient', JSON.stringify(currentPatient));
+        if (!currentUser || !currentUser.email) {
+            console.error('No hay usuario logueado');
+            window.location.href = '/index.html';
+            return;
         }
+
+        console.log('Buscando paciente con email:', currentUser.email);
+
+        // Buscar paciente por email en MongoDB
+        const response = await fetch(`/api/pacientes/email/${currentUser.email}`);
+        
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error('Paciente no encontrado. Contacte al administrador.');
+            } else {
+                throw new Error('Error del servidor al cargar datos');
+            }
+        }
+        
+        currentPatient = await response.json();
+        console.log('Paciente encontrado:', currentPatient);
+        
+        // Guardar también en localStorage para uso futuro
+        localStorage.setItem('currentPatient', JSON.stringify(currentPatient));
         
         updatePatientInfo();
         
     } catch (error) {
         console.error('Error cargando datos del paciente:', error);
+        alert('Error: ' + error.message);
+        window.location.href = '/index.html';
     }
 }
 
@@ -58,15 +89,17 @@ function updatePatientInfo() {
         `${currentPatient.nombre} ${currentPatient.apellido}`;
     document.getElementById('patient-age').textContent = 
         `${currentPatient.edad} años`;
-    document.getElementById('patient-gender').textContent = currentPatient.genero;
-    document.getElementById('patient-phone').textContent = currentPatient.telefono;
-    document.getElementById('patient-email').textContent = currentPatient.email;
+    document.getElementById('patient-gender').textContent = currentPatient.genero || 'No especificado';
+    document.getElementById('patient-phone').textContent = currentPatient.telefono || 'No especificado';
+    document.getElementById('patient-email').textContent = currentPatient.email || 'No especificado';
     document.getElementById('user-display-name').textContent = 
         `${currentPatient.nombre} ${currentPatient.apellido}`;
 }
 
 // Cargar todos los datos del paciente
 async function loadAllPatientData() {
+    if (!currentPatient) return;
+    
     await loadPatientPrescriptions();
     await loadPatientAppointments();
     await loadPatientDiagnoses();
@@ -76,89 +109,81 @@ async function loadAllPatientData() {
 // Cargar recetas del paciente desde MongoDB
 async function loadPatientPrescriptions() {
     try {
-        if (!currentPatient) return;
+        if (!currentPatient || !currentPatient._id) return;
         
-        // En un sistema real, conectar con tu API
         const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
-        if (!response.ok) throw new Error('Error al cargar recetas');
+        
+        if (!response.ok) {
+            // Si no hay recetas, mostrar mensaje apropiado
+            if (response.status === 404) {
+                document.getElementById('prescriptions-list').innerHTML = 
+                    '<p class="text-center text-muted">No tiene recetas registradas</p>';
+                return;
+            }
+            throw new Error('Error al cargar recetas');
+        }
         
         const prescriptions = await response.json();
         renderPrescriptions(prescriptions);
         
     } catch (error) {
         console.error('Error cargando recetas:', error);
-        // Datos de ejemplo si la API falla
-        const examplePrescriptions = [
-            {
-                _id: '1',
-                fechaEmision: '2024-01-15',
-                fechaValidez: '2024-02-15',
-                medicamentos: [
-                    { nombre: 'Paracetamol', dosis: '500mg', frecuencia: 'Cada 8 horas', duracion: '5 días' },
-                    { nombre: 'Ibuprofeno', dosis: '400mg', frecuencia: 'Cada 12 horas', duracion: '3 días' }
-                ],
-                instruccionesGenerales: 'Tomar después de los alimentos',
-                doctorNombre: 'Dr. Roberto Martínez',
-                estado: 'activa'
-            }
-        ];
-        renderPrescriptions(examplePrescriptions);
+        document.getElementById('prescriptions-list').innerHTML = 
+            '<p class="text-center text-muted">No se pudieron cargar las recetas</p>';
     }
 }
 
 // Cargar citas del paciente desde MongoDB
 async function loadPatientAppointments() {
     try {
-        if (!currentPatient) return;
+        if (!currentPatient || !currentPatient._id) return;
         
         const response = await fetch(`/api/citas/paciente/${currentPatient._id}`);
-        if (!response.ok) throw new Error('Error al cargar citas');
+        
+        if (!response.ok) {
+            // Si no hay citas, mostrar mensaje apropiado
+            if (response.status === 404) {
+                document.getElementById('appointments-list').innerHTML = 
+                    '<p class="text-center text-muted">No tiene citas programadas</p>';
+                return;
+            }
+            throw new Error('Error al cargar citas');
+        }
         
         const appointments = await response.json();
         renderAppointments(appointments);
         
     } catch (error) {
         console.error('Error cargando citas:', error);
-        // Datos de ejemplo
-        const exampleAppointments = [
-            {
-                _id: '1',
-                fechaCita: '2024-01-20',
-                horaCita: '10:00',
-                motivo: 'Consulta de seguimiento',
-                doctorNombre: 'Dr. Roberto Martínez',
-                estado: 'programada'
-            }
-        ];
-        renderAppointments(exampleAppointments);
+        document.getElementById('appointments-list').innerHTML = 
+            '<p class="text-center text-muted">No se pudieron cargar las citas</p>';
     }
 }
 
 // Cargar diagnósticos del paciente desde MongoDB
 async function loadPatientDiagnoses() {
     try {
-        if (!currentPatient) return;
+        if (!currentPatient || !currentPatient._id) return;
         
         const response = await fetch(`/api/diagnosticos/paciente/${currentPatient._id}`);
-        if (!response.ok) throw new Error('Error al cargar diagnósticos');
+        
+        if (!response.ok) {
+            // Si no hay diagnósticos, mostrar mensaje apropiado
+            if (response.status === 404) {
+                document.getElementById('diagnoses-list').innerHTML = 
+                    '<p class="text-center text-muted">No tiene diagnósticos registrados</p>';
+                return;
+            }
+            throw new Error('Error al cargar diagnósticos');
+        }
         
         const diagnoses = await response.json();
         renderDiagnoses(diagnoses);
         
     } catch (error) {
         console.error('Error cargando diagnósticos:', error);
-        // Datos de ejemplo
-        const exampleDiagnoses = [
-            {
-                _id: '1',
-                fecha: '2024-01-15',
-                diagnostico: 'Hipertensión arterial grado I',
-                tratamiento: 'Modificación de estilo de vida y control periódico',
-                observaciones: 'Paciente con presión arterial elevada en consulta',
-                doctorNombre: 'Dr. Roberto Martínez'
-            }
-        ];
-        renderDiagnoses(exampleDiagnoses);
+        document.getElementById('diagnoses-list').innerHTML = 
+            '<p class="text-center text-muted">No se pudieron cargar los diagnósticos</p>';
     }
 }
 
@@ -166,7 +191,7 @@ async function loadPatientDiagnoses() {
 function renderPrescriptions(prescriptions) {
     const container = document.getElementById('prescriptions-list');
     
-    if (prescriptions.length === 0) {
+    if (!prescriptions || prescriptions.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No tiene recetas registradas</p>';
         return;
     }
@@ -184,20 +209,23 @@ function renderPrescriptions(prescriptions) {
                     <div>
                         <h5 class="mb-1">Receta del ${formatDate(prescription.fechaEmision)}</h5>
                         <p class="mb-1"><strong>Válida hasta:</strong> ${formatDate(prescription.fechaValidez)}</p>
-                        <p class="mb-1"><strong>Médico:</strong> ${prescription.doctorNombre}</p>
+                        <p class="mb-1"><strong>Médico:</strong> ${prescription.doctorNombre || 'No especificado'}</p>
                         <span class="badge ${isExpired ? 'bg-danger' : 'bg-success'} status-badge">${statusText}</span>
                     </div>
                 </div>
                 
                 <div class="mt-3">
                     <h6>Medicamentos Recetados:</h6>
-                    ${prescription.medicamentos.map(med => `
-                        <div class="medication-item border-bottom pb-2 mb-2">
-                            <strong>${med.nombre} ${med.dosis}</strong><br>
-                            <small class="text-muted">${med.frecuencia} ${med.duracion ? `por ${med.duracion}` : ''}</small>
-                            ${med.instruccionesEspeciales ? `<br><small><em>Instrucciones: ${med.instruccionesEspeciales}</em></small>` : ''}
-                        </div>
-                    `).join('')}
+                    ${(prescription.medicamentos && prescription.medicamentos.length > 0) ? 
+                        prescription.medicamentos.map(med => `
+                            <div class="medication-item border-bottom pb-2 mb-2">
+                                <strong>${med.nombre} ${med.dosis}</strong><br>
+                                <small class="text-muted">${med.frecuencia} ${med.duracion ? `por ${med.duracion}` : ''}</small>
+                                ${med.instruccionesEspeciales ? `<br><small><em>Instrucciones: ${med.instruccionesEspeciales}</em></small>` : ''}
+                            </div>
+                        `).join('') : 
+                        '<p class="text-muted">No se especificaron medicamentos</p>'
+                    }
                 </div>
                 
                 ${prescription.instruccionesGenerales ? `
@@ -214,7 +242,7 @@ function renderPrescriptions(prescriptions) {
 function renderAppointments(appointments) {
     const container = document.getElementById('appointments-list');
     
-    if (appointments.length === 0) {
+    if (!appointments || appointments.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No tiene citas programadas</p>';
         return;
     }
@@ -227,7 +255,7 @@ function renderAppointments(appointments) {
         today.setHours(0, 0, 0, 0);
         
         let statusClass = 'upcoming';
-        let statusText = 'Próxima';
+        let statusText = appointment.estado || 'Programada';
         
         if (appointmentDate < today) {
             statusClass = 'past';
@@ -242,10 +270,10 @@ function renderAppointments(appointments) {
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h5 class="mb-1">${formatDate(appointment.fechaCita)}</h5>
-                        <p class="mb-1"><strong>Hora:</strong> ${appointment.horaCita}</p>
-                        <p class="mb-1"><strong>Médico:</strong> ${appointment.doctorNombre}</p>
-                        <p class="mb-1"><strong>Motivo:</strong> ${appointment.motivo}</p>
-                        <p class="mb-1"><strong>Estado:</strong> ${appointment.estado}</p>
+                        <p class="mb-1"><strong>Hora:</strong> ${appointment.horaCita || 'No especificada'}</p>
+                        <p class="mb-1"><strong>Médico:</strong> ${appointment.doctorNombre || 'No especificado'}</p>
+                        <p class="mb-1"><strong>Motivo:</strong> ${appointment.motivo || 'Consulta general'}</p>
+                        <p class="mb-1"><strong>Estado:</strong> ${appointment.estado || 'Programada'}</p>
                     </div>
                     <span class="badge ${getAppointmentBadgeClass(statusClass)} status-badge">${statusText}</span>
                 </div>
@@ -258,7 +286,7 @@ function renderAppointments(appointments) {
 function renderDiagnoses(diagnoses) {
     const container = document.getElementById('diagnoses-list');
     
-    if (diagnoses.length === 0) {
+    if (!diagnoses || diagnoses.length === 0) {
         container.innerHTML = '<p class="text-center text-muted">No tiene diagnósticos registrados</p>';
         return;
     }
@@ -270,19 +298,19 @@ function renderDiagnoses(diagnoses) {
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <h5 class="mb-1">Consulta del ${formatDate(diagnosis.fecha)}</h5>
-                    <p class="mb-1"><strong>Médico:</strong> ${diagnosis.doctorNombre}</p>
+                    <p class="mb-1"><strong>Médico:</strong> ${diagnosis.doctorNombre || 'No especificado'}</p>
                 </div>
             </div>
             
             <div class="mt-3">
                 <div class="mb-3">
                     <h6 class="text-primary">Diagnóstico Principal:</h6>
-                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.diagnostico}</p>
+                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.diagnostico || 'No especificado'}</p>
                 </div>
                 
                 <div class="mb-3">
                     <h6 class="text-success">Tratamiento Indicado:</h6>
-                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.tratamiento}</p>
+                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.tratamiento || 'No especificado'}</p>
                 </div>
                 
                 ${diagnosis.observaciones ? `
@@ -298,16 +326,21 @@ function renderDiagnoses(diagnoses) {
 
 // Actualizar tarjetas de resumen
 function updateSummaryCards() {
-    // En un sistema real, estos números vendrían de las APIs
-    const recetas = document.querySelectorAll('.prescription-card.active').length;
-    const citas = document.querySelectorAll('.appointment-card.upcoming, .appointment-card.today').length;
-    const diagnosticos = document.querySelectorAll('.diagnosis-card').length;
+    if (!currentPatient) return;
     
-    document.getElementById('total-recetas').textContent = recetas;
-    document.getElementById('total-citas').textContent = citas;
-    document.getElementById('total-diagnosticos').textContent = diagnosticos;
+    // Contar recetas activas
+    const recetasActivas = document.querySelectorAll('.prescription-card.active').length;
+    document.getElementById('total-recetas').textContent = recetasActivas;
     
-    // Contar doctores únicos (ejemplo simplificado)
+    // Contar citas próximas
+    const citasProximas = document.querySelectorAll('.appointment-card.upcoming, .appointment-card.today').length;
+    document.getElementById('total-citas').textContent = citasProximas;
+    
+    // Contar diagnósticos
+    const totalDiagnosticos = document.querySelectorAll('.diagnosis-card').length;
+    document.getElementById('total-diagnosticos').textContent = totalDiagnosticos;
+    
+    // Contar doctores únicos
     const doctores = new Set();
     document.querySelectorAll('.prescription-card, .appointment-card, .diagnosis-card').forEach(card => {
         const doctorText = card.textContent.match(/Médico:\s*([^\n<]+)/);
@@ -326,6 +359,28 @@ function updateSummaryCards() {
         
         document.getElementById('next-appointment-date').textContent = date;
         document.getElementById('next-appointment-doctor').textContent = doctor ? `Con ${doctor}` : '';
+    }
+    
+    // Actualizar última receta
+    const lastPrescription = document.querySelector('.prescription-card');
+    if (lastPrescription) {
+        const date = lastPrescription.querySelector('h5').textContent.replace('Receta del ', '');
+        const doctorMatch = lastPrescription.textContent.match(/Médico:\s*([^\n<]+)/);
+        const doctor = doctorMatch ? doctorMatch[1].trim() : '';
+        
+        document.getElementById('last-prescription-date').textContent = date;
+        document.getElementById('last-prescription-doctor').textContent = doctor ? `Por ${doctor}` : '';
+    }
+    
+    // Actualizar último diagnóstico
+    const lastDiagnosis = document.querySelector('.diagnosis-card');
+    if (lastDiagnosis) {
+        const date = lastDiagnosis.querySelector('h5').textContent.replace('Consulta del ', '');
+        const doctorMatch = lastDiagnosis.textContent.match(/Médico:\s*([^\n<]+)/);
+        const doctor = doctorMatch ? doctorMatch[1].trim() : '';
+        
+        document.getElementById('last-diagnosis-date').textContent = date;
+        document.getElementById('last-diagnosis-doctor').textContent = doctor ? `Por ${doctor}` : '';
     }
 }
 
@@ -379,8 +434,12 @@ function showSection(sectionName) {
 
 // Funciones auxiliares
 function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+    try {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+    } catch (error) {
+        return 'Fecha no disponible';
+    }
 }
 
 function getAppointmentBadgeClass(status) {
@@ -395,6 +454,7 @@ function getAppointmentBadgeClass(status) {
 // Cerrar sesión
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
+        localStorage.removeItem('currentUser');
         localStorage.removeItem('currentPatient');
         window.location.href = '/index.html';
     }

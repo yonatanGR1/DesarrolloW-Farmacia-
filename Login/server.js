@@ -314,3 +314,56 @@ app.use('/api/citas', citasRoutes);
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
+
+// Obtener paciente por email
+app.get("/api/pacientes/email/:email", async (req, res) => {
+  try {
+    const paciente = await Paciente.findOne({ email: req.params.email });
+    if (!paciente) {
+      return res.status(404).json({ error: "Paciente no encontrado" });
+    }
+    res.json(paciente);
+  } catch (error) {
+    console.error("Error al buscar paciente por email:", error);
+    res.status(500).json({ error: "Error al buscar el paciente" });
+  }
+});
+
+// Obtener recetas por paciente
+app.get("/api/recetas/paciente/:pacienteId", async (req, res) => {
+  try {
+    const recetas = await Receta.find({ paciente: req.params.pacienteId })
+                              .populate('doctor', 'nombre apellido')
+                              .sort({ fechaEmision: -1 });
+    res.json(recetas);
+  } catch (error) {
+    console.error("Error al obtener recetas del paciente:", error);
+    res.status(500).json({ error: "Error al obtener recetas" });
+  }
+});
+
+// Obtener citas por paciente
+app.get("/api/citas/paciente/:pacienteId", async (req, res) => {
+  try {
+    const citas = await Cita.find({ paciente: req.params.pacienteId })
+                           .populate('doctor', 'nombre apellido')
+                           .sort({ fechaCita: 1 });
+    res.json(citas);
+  } catch (error) {
+    console.error("Error al obtener citas del paciente:", error);
+    res.status(500).json({ error: "Error al obtener citas" });
+  }
+});
+
+// Obtener diagnósticos por paciente
+app.get("/api/diagnosticos/paciente/:pacienteId", async (req, res) => {
+  try {
+    const diagnosticos = await Diagnostico.find({ paciente: req.params.pacienteId })
+                                         .populate('doctor', 'nombre apellido')
+                                         .sort({ fecha: -1 });
+    res.json(diagnosticos);
+  } catch (error) {
+    console.error("Error al obtener diagnósticos del paciente:", error);
+    res.status(500).json({ error: "Error al obtener diagnósticos" });
+  }
+});

@@ -35,13 +35,31 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             messageElement.textContent = 'Login exitoso! Redirigiendo...';
             messageElement.style.color = 'green';
             
+            // 🔥🔥🔥 CORRECCIÓN CRÍTICA: GUARDAR USUARIO EN LOCALSTORAGE 🔥🔥🔥
+            localStorage.setItem('currentUser', JSON.stringify({
+                _id: data.usuario.id,
+                nombre: data.usuario.nombre,
+                email: data.usuario.email,
+                rol: data.rol
+            }));
+            
+            console.log('Usuario guardado en localStorage:', data.usuario);
+
             // Redirigir según el rol
             setTimeout(() => {
                 if (data.rol === 'doctor') {
+                    // También guardar como doctor si es necesario
+                    localStorage.setItem('currentDoctor', JSON.stringify({
+                        _id: data.usuario.id,
+                        nombre: data.usuario.nombre,
+                        email: data.usuario.email
+                    }));
                     window.location.href = './Presentation/DoctorInterface/DoctorInterface.html';
-                } else {
+                } else if (data.rol === 'paciente') {
                     window.location.href = '../Presentation/PatientInterface/PacienteH.html';
-                    //window.location.href = 'PatientInterface.html';
+                } else {
+                    // Redirección por defecto
+                    window.location.href = '/index.html';
                 }
             }, 1000);
         } else {
@@ -54,7 +72,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         messageElement.style.color = 'red';
     }
 });
-document.addEventListener("DOMContentLoaded", async () => {
+/* document.addEventListener("DOMContentLoaded", async () => {
   // 👇 Asegúrate de guardar el ID del doctor cuando inicia sesión
   const doctorId = localStorage.getItem("doctorId");
   if (!doctorId) {
@@ -87,4 +105,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error(err);
     alert("Error al cargar la lista de pacientes");
   }
-});
+});*/
