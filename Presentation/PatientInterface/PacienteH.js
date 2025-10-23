@@ -1,16 +1,7 @@
-// Agrega esto al inicio de PacienteH.js para debug
-console.log('=== INICIANDO PORTAL PACIENTE ===');
-console.log('currentUser en localStorage:', localStorage.getItem('currentUser'));
-console.log('currentPatient en localStorage:', localStorage.getItem('currentPatient'));
-
-const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-if (!currentUser) {
-    console.error('❌ NO HAY USUARIO EN LOCALSTORAGE');
-} else {
-    console.log('✅ Usuario encontrado:', currentUser);
-}
-// PacienteH.js - Portal del Paciente (SOLO LECTURA)
+// PacienteH.js - Portal del Paciente con Control de Medicamentos
 let currentPatient = null;
+let activeMedications = [];
+let medicationHistory = [];
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
@@ -38,13 +29,14 @@ function checkAuthentication() {
 async function initializePatientPortal() {
     await loadPatientData();
     await loadAllPatientData();
+    await loadMedicationTracking();
     setupEventListeners();
+    updateTodayDate();
 }
 
 // Cargar datos del paciente actual desde MongoDB
 async function loadPatientData() {
     try {
-        // Obtener el usuario actual del localStorage
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
         
         if (!currentUser || !currentUser.email) {
@@ -55,7 +47,6 @@ async function loadPatientData() {
 
         console.log('Buscando paciente con email:', currentUser.email);
 
-        // Buscar paciente por email en MongoDB
         const response = await fetch(`/api/pacientes/email/${currentUser.email}`);
         
         if (!response.ok) {
@@ -69,9 +60,7 @@ async function loadPatientData() {
         currentPatient = await response.json();
         console.log('Paciente encontrado:', currentPatient);
         
-        // Guardar también en localStorage para uso futuro
         localStorage.setItem('currentPatient', JSON.stringify(currentPatient));
-        
         updatePatientInfo();
         
     } catch (error) {
@@ -114,7 +103,6 @@ async function loadPatientPrescriptions() {
         const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
-            // Si no hay recetas, mostrar mensaje apropiado
             if (response.status === 404) {
                 document.getElementById('prescriptions-list').innerHTML = 
                     '<p class="text-center text-muted">No tiene recetas registradas</p>';
@@ -141,7 +129,6 @@ async function loadPatientAppointments() {
         const response = await fetch(`/api/citas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
-            // Si no hay citas, mostrar mensaje apropiado
             if (response.status === 404) {
                 document.getElementById('appointments-list').innerHTML = 
                     '<p class="text-center text-muted">No tiene citas programadas</p>';
@@ -168,7 +155,6 @@ async function loadPatientDiagnoses() {
         const response = await fetch(`/api/diagnosticos/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
-            // Si no hay diagnósticos, mostrar mensaje apropiado
             if (response.status === 404) {
                 document.getElementById('diagnoses-list').innerHTML = 
                     '<p class="text-center text-muted">No tiene diagnósticos registrados</p>';
@@ -185,6 +171,310 @@ async function loadPatientDiagnoses() {
         document.getElementById('diagnoses-list').innerHTML = 
             '<p class="text-center text-muted">No se pudieron cargar los diagnósticos</p>';
     }
+}
+
+// Cargar y gestionar el control de medicamentos
+async function loadMedicationTracking() {
+    try {
+        // Cargar historial desde localStorage o inicializar
+        const storedHistory = localStorage.getItem(`medicationHistory_${currentPatient._id}`);
+        medicationHistory = storedHistory ? JSON.parse(storedHistory) : [];
+        
+        // Procesar recetas para extraer medicamentos activos
+        await processActiveMedications();
+        renderMedications();
+        updateMedicationProgress();
+        
+    } catch (error) {
+        console.error('Error cargando control de medicamentos:', error);
+    }
+}
+
+// Procesar recetas para obtener medicamentos activos
+async function processActiveMedications() {
+    try {
+        if (!currentPatient || !currentPatient._id) return;
+        
+        const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
+        if (!response.ok) return;
+        
+        const prescriptions = await response.json();
+        activeMedications = [];
+        
+        const today = new Date();
+        
+        prescriptions.forEach(prescription => {
+            if (!prescription.medicamentos || !Array.isArray(prescription.medicamentos)) return;
+            
+            const prescriptionDate = new Date(prescription.fechaEmision);
+            const validityDate = new Date(prescription.fechaValidez);
+            
+            // Solo procesar recetas válidas (no expiradas)
+            if (validityDate >= today) {
+                prescription.medicamentos.forEach(med => {
+                    const medicationId = `${prescription._id}_${med.nombre}_${med.dosis}`;
+                    
+                    const existingMed = activeMedications.find(m => m.id === medicationId);
+                    if (!existingMed) {
+                        activeMedications.push({
+                            id: medicationId,
+                            nombre: med.nombre,
+                            dosis: med.dosis,
+                            frecuencia: med.frecuencia,
+                            duracion: med.duracion,
+                            instrucciones: med.instruccionesEspeciales || '',
+                            recetaId: prescription._id,
+                            recetaFecha: prescription.fechaEmision,
+                            doctor: prescription.doctorNombre || 'Médico no especificado',
+                            activo: true
+                        });
+                    }
+                });
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error procesando medicamentos activos:', error);
+    }
+}
+
+// Renderizar medicamentos para control
+function renderMedications() {
+    const container = document.getElementById('medications-list');
+    
+    if (!activeMedications || activeMedications.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-pills fa-3x mb-3"></i>
+                <p>No tiene medicamentos activos para controlar</p>
+                <small>Los medicamentos aparecerán aquí cuando tenga recetas activas</small>
+            </div>
+        `;
+        return;
+    }
+    
+    const today = new Date().toDateString();
+    const todayHistory = medicationHistory.filter(record => 
+        new Date(record.timestamp).toDateString() === today
+    );
+    
+    container.innerHTML = activeMedications.map(med => {
+        const takenToday = todayHistory.some(record => record.medicationId === med.id);
+        const takenCount = medicationHistory.filter(record => 
+            record.medicationId === med.id
+        ).length;
+        
+        return `
+            <div class="medication-card border p-3 mb-3 rounded ${takenToday ? 'border-success bg-light-success' : ''}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1">${med.nombre} <small class="text-muted">${med.dosis}</small></h5>
+                        <p class="mb-1"><strong>Frecuencia:</strong> ${med.frecuencia}</p>
+                        <p class="mb-1"><strong>Duración:</strong> ${med.duracion || 'No especificada'}</p>
+                        <p class="mb-1"><strong>Recetado por:</strong> ${med.doctor}</p>
+                        ${med.instrucciones ? `<p class="mb-1"><strong>Instrucciones:</strong> ${med.instrucciones}</p>` : ''}
+                        <small class="text-muted">Receta del ${formatDate(med.recetaFecha)}</small>
+                    </div>
+                    <div class="text-center ms-3">
+                        <button class="btn ${takenToday ? 'btn-success' : 'btn-outline-primary'} btn-sm"
+                                onclick="toggleMedicationTaken('${med.id}')"
+                                ${takenToday ? 'disabled' : ''}>
+                            <i class="fas ${takenToday ? 'fa-check' : 'fa-pills'} me-1"></i>
+                            ${takenToday ? 'Tomado' : 'Marcar como Tomado'}
+                        </button>
+                        <div class="mt-1">
+                            <small class="text-muted">Veces tomado: ${takenCount}</small>
+                        </div>
+                    </div>
+                </div>
+                ${takenToday ? `
+                    <div class="mt-2 p-2 bg-success text-white rounded">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Tomado hoy a las ${getLastTakenTime(med.id)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+// Marcar/desmarcar medicamento como tomado
+function toggleMedicationTaken(medicationId) {
+    const today = new Date();
+    const todayString = today.toDateString();
+    
+    // Verificar si ya fue tomado hoy
+    const alreadyTaken = medicationHistory.some(record => 
+        record.medicationId === medicationId && 
+        new Date(record.timestamp).toDateString() === todayString
+    );
+    
+    if (!alreadyTaken) {
+        // Agregar registro de toma
+        medicationHistory.push({
+            medicationId: medicationId,
+            timestamp: today.toISOString(),
+            patientId: currentPatient._id
+        });
+        
+        // Guardar en localStorage
+        localStorage.setItem(`medicationHistory_${currentPatient._id}`, JSON.stringify(medicationHistory));
+        
+        // Actualizar UI
+        renderMedications();
+        updateMedicationProgress();
+        updateSummaryCards();
+        
+        // Mostrar confirmación
+        showNotification('Medicamento marcado como tomado', 'success');
+    }
+}
+
+// Obtener hora de la última toma
+function getLastTakenTime(medicationId) {
+    const records = medicationHistory
+        .filter(record => record.medicationId === medicationId)
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    if (records.length > 0) {
+        const lastTaken = new Date(records[0].timestamp);
+        return lastTaken.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+    }
+    return '';
+}
+
+// Actualizar progreso de medicamentos
+function updateMedicationProgress() {
+    const today = new Date().toDateString();
+    const todayHistory = medicationHistory.filter(record => 
+        new Date(record.timestamp).toDateString() === today
+    );
+    
+    const uniqueMedicationsTaken = new Set(todayHistory.map(record => record.medicationId));
+    const totalActiveMeds = activeMedications.length;
+    const takenToday = uniqueMedicationsTaken.size;
+    
+    const progressPercentage = totalActiveMeds > 0 ? Math.round((takenToday / totalActiveMeds) * 100) : 0;
+    
+    // Actualizar barra de progreso
+    const progressBar = document.getElementById('daily-progress-bar');
+    const progressText = document.getElementById('daily-progress-text');
+    const dailySummary = document.getElementById('daily-summary');
+    
+    if (progressBar) {
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.className = `progress-bar ${progressPercentage === 100 ? 'bg-success' : progressPercentage >= 50 ? 'bg-warning' : 'bg-danger'}`;
+    }
+    
+    if (progressText) {
+        progressText.textContent = `${progressPercentage}%`;
+    }
+    
+    if (dailySummary) {
+        dailySummary.textContent = `${takenToday} de ${totalActiveMeds} medicamentos tomados hoy`;
+    }
+    
+    // Actualizar resumen en sección principal
+    const todaySummary = document.getElementById('medications-today');
+    const progressSmall = document.getElementById('medications-progress');
+    
+    if (todaySummary) {
+        todaySummary.textContent = `${takenToday} de ${totalActiveMeds} medicamentos tomados`;
+    }
+    
+    if (progressSmall) {
+        progressSmall.textContent = `Progreso: ${progressPercentage}%`;
+    }
+    
+    // Actualizar tarjeta de resumen
+    document.getElementById('total-medicamentos-activos').textContent = totalActiveMeds;
+    
+    // Calcular adherencia semanal
+    updateWeeklyAdherence();
+}
+
+// Calcular adherencia semanal
+function updateWeeklyAdherence() {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    const weekHistory = medicationHistory.filter(record => 
+        new Date(record.timestamp) >= oneWeekAgo
+    );
+    
+    const dailyMedications = {};
+    weekHistory.forEach(record => {
+        const date = new Date(record.timestamp).toDateString();
+        if (!dailyMedications[date]) {
+            dailyMedications[date] = new Set();
+        }
+        dailyMedications[date].add(record.medicationId);
+    });
+    
+    let totalDays = 0;
+    let adherentDays = 0;
+    
+    // Calcular para cada día de la semana pasada
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateString = date.toDateString();
+        
+        // Solo contar días donde el paciente tenía medicamentos activos
+        if (activeMedications.length > 0) {
+            totalDays++;
+            if (dailyMedications[dateString] && dailyMedications[dateString].size === activeMedications.length) {
+                adherentDays++;
+            }
+        }
+    }
+    
+    const adherenceRate = totalDays > 0 ? Math.round((adherentDays / totalDays) * 100) : 0;
+    document.getElementById('weekly-adherence').textContent = `${adherenceRate}%`;
+}
+
+// Filtrar medicamentos
+function filterMedications(filter) {
+    const buttons = document.querySelectorAll('#medicamentos-section .btn-group .btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // En una implementación real, aquí se aplicarían los filtros
+    renderMedications(); // Por ahora recargamos todos
+}
+
+// Actualizar fecha actual
+function updateTodayDate() {
+    const today = new Date();
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('today-date').textContent = today.toLocaleDateString('es-ES', options);
+}
+
+// Mostrar notificación
+function showNotification(message, type = 'info') {
+    // Crear notificación simple
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '1050';
+    alertDiv.style.minWidth = '300px';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remover después de 3 segundos
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 3000);
 }
 
 // Renderizar recetas (SOLO LECTURA)
@@ -340,15 +630,8 @@ function updateSummaryCards() {
     const totalDiagnosticos = document.querySelectorAll('.diagnosis-card').length;
     document.getElementById('total-diagnosticos').textContent = totalDiagnosticos;
     
-    // Contar doctores únicos
-    const doctores = new Set();
-    document.querySelectorAll('.prescription-card, .appointment-card, .diagnosis-card').forEach(card => {
-        const doctorText = card.textContent.match(/Médico:\s*([^\n<]+)/);
-        if (doctorText && doctorText[1]) {
-            doctores.add(doctorText[1].trim());
-        }
-    });
-    document.getElementById('total-doctores').textContent = doctores.size;
+    // Contar medicamentos activos
+    document.getElementById('total-medicamentos-activos').textContent = activeMedications.length;
     
     // Actualizar próxima cita en el resumen
     const nextAppointment = document.querySelector('.appointment-card.upcoming, .appointment-card.today');
@@ -372,16 +655,19 @@ function updateSummaryCards() {
         document.getElementById('last-prescription-doctor').textContent = doctor ? `Por ${doctor}` : '';
     }
     
-    // Actualizar último diagnóstico
-    const lastDiagnosis = document.querySelector('.diagnosis-card');
-    if (lastDiagnosis) {
-        const date = lastDiagnosis.querySelector('h5').textContent.replace('Consulta del ', '');
-        const doctorMatch = lastDiagnosis.textContent.match(/Médico:\s*([^\n<]+)/);
-        const doctor = doctorMatch ? doctorMatch[1].trim() : '';
-        
-        document.getElementById('last-diagnosis-date').textContent = date;
-        document.getElementById('last-diagnosis-doctor').textContent = doctor ? `Por ${doctor}` : '';
-    }
+    // Actualizar control de medicamentos del día
+    const today = new Date().toDateString();
+    const todayHistory = medicationHistory.filter(record => 
+        new Date(record.timestamp).toDateString() === today
+    );
+    const uniqueMedicationsTaken = new Set(todayHistory.map(record => record.medicationId));
+    
+    document.getElementById('medications-today').textContent = 
+        `${uniqueMedicationsTaken.size} de ${activeMedications.length} medicamentos tomados`;
+    
+    const progressPercentage = activeMedications.length > 0 ? 
+        Math.round((uniqueMedicationsTaken.size / activeMedications.length) * 100) : 0;
+    document.getElementById('medications-progress').textContent = `Progreso: ${progressPercentage}%`;
 }
 
 // Configurar event listeners
@@ -398,12 +684,16 @@ function setupEventListeners() {
     document.getElementById('search-diagnoses').addEventListener('input', function(e) {
         filterItems('diagnoses-list', e.target.value);
     });
+    
+    document.getElementById('search-medications').addEventListener('input', function(e) {
+        filterItems('medications-list', e.target.value);
+    });
 }
 
 // Filtrar items en listas
 function filterItems(containerId, searchTerm) {
     const container = document.getElementById(containerId);
-    const items = container.querySelectorAll('.prescription-card, .appointment-card, .diagnosis-card');
+    const items = container.querySelectorAll('.prescription-card, .appointment-card, .diagnosis-card, .medication-card');
     
     items.forEach(item => {
         const text = item.textContent.toLowerCase();
@@ -430,6 +720,11 @@ function showSection(sectionName) {
         link.classList.remove('active');
     });
     event.target.classList.add('active');
+    
+    // Si es la sección de medicamentos, actualizar progreso
+    if (sectionName === 'medicamentos') {
+        updateMedicationProgress();
+    }
 }
 
 // Funciones auxiliares

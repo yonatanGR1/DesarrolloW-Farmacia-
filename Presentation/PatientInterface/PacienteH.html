@@ -21,7 +21,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-hospital">
         <div class="container">
-            <a class="navbar-brand" href="#">
+           <a class="nav-link" href="\Presentation\PatientInterface\PacienteH.html">
                 <i class="fas fa-hospital me-2"></i>Hospital La Paz
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -30,24 +30,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="#" onclick="showSection('resumen')">
-                            <i class="fas fa-home me-1"></i> Resumen
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('recetas')">
-                            <i class="fas fa-prescription me-1"></i> Recetas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('citas')">
-                            <i class="fas fa-calendar-check me-1"></i> Citas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" onclick="showSection('diagnosticos')">
-                            <i class="fas fa-file-medical me-1"></i> Diagnósticos
-                        </a>
+                        
                     </li>
                 </ul>
                 <div class="d-flex align-items-center">
@@ -70,7 +53,9 @@
                     <div class="card-body text-center">
                         <i class="fas fa-prescription fa-2x mb-2"></i>
                         <h5 id="total-recetas">0</h5>
-                        <p class="mb-0">Recetas Activas</p>
+                         <a class="nav-link" href="#" onclick="showSection('recetas')">
+                            <p class="mb-0">Recetas Activas</p>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -79,7 +64,10 @@
                     <div class="card-body text-center">
                         <i class="fas fa-calendar-check fa-2x mb-2"></i>
                         <h5 id="total-citas">0</h5>
-                        <p class="mb-0">Próximas Citas</p>
+                         <a class="nav-link" href="#" onclick="showSection('citas')">
+                            <p class="mb-0">Próximas Citas</p>
+                        </a>
+                       
                     </div>
                 </div>
             </div>
@@ -88,16 +76,21 @@
                     <div class="card-body text-center">
                         <i class="fas fa-file-medical fa-2x mb-2"></i>
                         <h5 id="total-diagnosticos">0</h5>
-                        <p class="mb-0">Diagnósticos</p>
+                        <a class="nav-link" href="#" onclick="showSection('diagnosticos')">
+                            <p class="mb-0">Diagnósticos</p>
+                        </a>
+                        
                     </div>
                 </div>
             </div>
             <div class="col-md-3 mb-3">
                 <div class="card summary-card bg-info text-white">
                     <div class="card-body text-center">
-                        <i class="fas fa-user-md fa-2x mb-2"></i>
-                        <h5 id="total-doctores">0</h5>
-                        <p class="mb-0">Doctores</p>
+                        <i class="fas fa-pills fa-2x mb-2"></i>
+                        <h5 id="total-medicamentos-activos">0</h5>
+                        <a class="nav-link" href="#" onclick="showSection('medicamentos')">
+                            <p class="mb-0">Control Medicamentos</p>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -139,10 +132,10 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <h5>Último Diagnóstico</h5>
-                            <div id="last-diagnosis" class="p-3 bg-light rounded">
-                                <p class="mb-1" id="last-diagnosis-date">No hay diagnósticos recientes</p>
-                                <small class="text-muted" id="last-diagnosis-doctor"></small>
+                            <h5>Control de Medicamentos Hoy</h5>
+                            <div id="today-medication-summary" class="p-3 bg-light rounded">
+                                <p class="mb-1" id="medications-today">Cargando...</p>
+                                <small class="text-muted" id="medications-progress">-</small>
                             </div>
                         </div>
                     </div>
@@ -196,6 +189,63 @@
                     </div>
                     <div id="diagnoses-list">
                         <p class="text-center text-muted">Cargando diagnósticos...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Nueva Sección de Control de Medicamentos -->
+        <div class="section" id="medicamentos-section" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-pills me-2"></i>Control de Medicamentos
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5 id="today-date">Hoy</h5>
+                                    <div class="progress mb-2" style="height: 20px;">
+                                        <div id="daily-progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%">
+                                            <span id="daily-progress-text">0%</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted" id="daily-summary">0 de 0 medicamentos tomados hoy</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h5>Esta Semana</h5>
+                                    <h3 id="weekly-adherence">0%</h3>
+                                    <small class="text-muted">Adherencia al tratamiento</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="search-medications" placeholder="Buscar medicamentos...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" onclick="filterMedications('all')">
+                                Todos los Medicamentos
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterMedications('active')">
+                                Activos
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="filterMedications('completed')">
+                                Completados Hoy
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="medications-list">
+                        <p class="text-center text-muted">Cargando medicamentos...</p>
                     </div>
                 </div>
             </div>

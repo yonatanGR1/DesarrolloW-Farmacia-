@@ -82,7 +82,7 @@
 }
 
 .prescription-card.active {
-    border-left-color: #28a745;
+    border-left-color: #2865a7;
 }
 
 .appointment-card.past {
@@ -91,11 +91,11 @@
 }
 
 .appointment-card.upcoming {
-    border-left-color: #ffc107;
+    border-left-color: #075eff;
 }
 
 .appointment-card.today {
-    border-left-color: #28a745;
+    border-left-color: #2833a7;
     background-color: #d4edda;
 }
 
@@ -141,5 +141,50 @@
     .prescription-card {
         border: 1px solid #000 !important;
         page-break-inside: avoid;
+    }
+}
+/* Estilos para el control de medicamentos */
+.medication-card {
+    transition: all 0.3s ease;
+}
+
+.medication-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.bg-light-success {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+    border-color: #198754 !important;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.progress-bar {
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+/* Estilos para las notificaciones */
+.alert {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Mejoras visuales para las tarjetas de medicamentos */
+.medication-item {
+    border-left: 3px solid #0d6efd;
+    padding-left: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
     }
 }
