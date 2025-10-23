@@ -130,6 +130,8 @@ async function loadScheduledAppointments() {
             const patientName = `${appointment.pacienteNombre} ${appointment.pacienteApellido}`;
             const appointmentDate = new Date(appointment.fechaCita);
             const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            appointmentDate.setHours(0, 0, 0, 0);
             const isPast = appointmentDate < today;
             const statusClass = isPast ? 'past' : 'upcoming';
             
@@ -183,6 +185,11 @@ async function scheduleAppointment() {
         const selectedOption = patientSelect.options[patientSelect.selectedIndex];
         const patientData = JSON.parse(selectedOption.getAttribute('data-patient'));
         
+        // Crear la fecha en formato ISO pero mantener la fecha local sin conversión de zona horaria
+        // Esto asegura que la fecha se guarde exactamente como la seleccionó el usuario
+        const [year, month, day] = date.split('-');
+        const localDate = `${year}-${month}-${day}`;
+        
         const nuevaCita = {
             pacienteId: patientId,
             pacienteNombre: patientData.nombre,
@@ -190,7 +197,7 @@ async function scheduleAppointment() {
             pacienteEdad: patientData.edad,
             pacienteGenero: patientData.genero,
             pacienteEmail: patientData.email,
-            fechaCita: date,
+            fechaCita: localDate,
             horaCita: time,
             motivo: reason,
             estado: 'programada',
@@ -239,9 +246,17 @@ async function editExistingAppointment(appointmentId) {
         
         const appointment = await response.json();
         
+        // Extraer la fecha en formato YYYY-MM-DD sin conversión de zona horaria
+        let appointmentDate;
+        if (appointment.fechaCita.includes('T')) {
+            appointmentDate = appointment.fechaCita.split('T')[0];
+        } else {
+            appointmentDate = appointment.fechaCita;
+        }
+        
         // Llenar el formulario con los datos de la cita
         document.getElementById('patientSelect').value = appointment.pacienteId;
-        document.getElementById('appointmentDate').value = appointment.fechaCita.split('T')[0];
+        document.getElementById('appointmentDate').value = appointmentDate;
         document.getElementById('appointmentTime').value = appointment.horaCita;
         document.getElementById('appointmentReason').value = appointment.motivo || '';
         
@@ -344,15 +359,28 @@ function getStatusBadgeClass(status) {
     }
 }
 
-// Formatear fecha para mostrar
+// Formatear fecha para mostrar - CORREGIDO para evitar cambio de día
 function formatAppointmentDate(dateString) {
+    // Extraer año, mes y día directamente sin conversión de zona horaria
+    let year, month, day;
+    
+    if (dateString.includes('T')) {
+        [year, month, day] = dateString.split('T')[0].split('-');
+    } else {
+        [year, month, day] = dateString.split('-');
+    }
+    
+    // Crear fecha en zona horaria local sin conversión
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
     const options = { 
         weekday: 'short', 
         year: 'numeric', 
         month: 'short', 
         day: 'numeric' 
     };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+    
+    return date.toLocaleDateString('es-ES', options);
 }
 
 // Función de cierre de sesión
@@ -365,6 +393,5 @@ function logout() {
 
 // Inicializar la gestión de citas cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    
     initializeAppointmentManager();
 });

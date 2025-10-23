@@ -26,6 +26,31 @@ async function initializeDoctorInterface() {
     }
 }
 
+// Función auxiliar para comparar fechas sin hora
+function compareDatesOnly(date1String, date2String) {
+    // Extraer solo la parte de fecha (YYYY-MM-DD)
+    let dateStr1 = date1String;
+    let dateStr2 = date2String;
+    
+    if (date1String.includes('T')) {
+        dateStr1 = date1String.split('T')[0];
+    }
+    if (date2String.includes('T')) {
+        dateStr2 = date2String.split('T')[0];
+    }
+    
+    return dateStr1 === dateStr2;
+}
+
+// Función para obtener la fecha de hoy en formato YYYY-MM-DD
+function getTodayDateString() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 // Cargar estadísticas del dashboard
 async function loadDoctorDashboardStats() {
     try {
@@ -40,23 +65,20 @@ async function loadDoctorDashboardStats() {
             console.warn('Error cargando pacientes para estadísticas');
         }
         
-        // Cargar citas de hoy - usando enfoque alternativo si el endpoint especial falla
+        // Cargar citas de hoy
         let citasHoy = [];
         try {
-            const todayResponse = await fetch(`${API_CITAS}/hoy`);
-            if (todayResponse.ok) {
-                citasHoy = await todayResponse.json();
-            } else {
-                // Si falla el endpoint específico, intentar con el general y filtrar
-                console.warn('Endpoint /hoy no disponible, usando filtrado local');
-                const allAppointmentsResponse = await fetch(API_CITAS);
-                if (allAppointmentsResponse.ok) {
-                    const allAppointments = await allAppointmentsResponse.json();
-                    const today = new Date().toISOString().split('T')[0];
-                    citasHoy = allAppointments.filter(appointment => 
-                        appointment.fechaCita && appointment.fechaCita.split('T')[0] === today
-                    );
-                }
+            const allAppointmentsResponse = await fetch(API_CITAS);
+            if (allAppointmentsResponse.ok) {
+                const allAppointments = await allAppointmentsResponse.json();
+                const todayString = getTodayDateString();
+                
+                citasHoy = allAppointments.filter(appointment => {
+                    if (!appointment.fechaCita) return false;
+                    return compareDatesOnly(appointment.fechaCita, todayString);
+                });
+                
+                console.log('Citas de hoy encontradas:', citasHoy.length);
             }
         } catch (error) {
             console.warn('Error cargando citas de hoy:', error);
@@ -104,51 +126,35 @@ async function loadTodayAppointments() {
         container.style.display = 'none';
         empty.style.display = 'none';
         
-        let todayAppointments = [];
+        console.log('Cargando citas de hoy...');
         
-        // Intentar múltiples enfoques para obtener las citas de hoy
-        try {
-            // Enfoque 1: Endpoint específico para hoy
-            const response = await fetch(`${API_CITAS}/hoy`);
-            if (response.ok) {
-                todayAppointments = await response.json();
-                console.log('Citas de hoy cargadas via endpoint /hoy:', todayAppointments.length);
-            } else {
-                throw new Error(`Endpoint /hoy no disponible: ${response.status}`);
-            }
-        } catch (endpointError) {
-            console.warn('Error con endpoint /hoy, intentando enfoque alternativo:', endpointError);
-            
-            // Enfoque 2: Obtener todas las citas y filtrar localmente
-            try {
-                const allAppointmentsResponse = await fetch(API_CITAS);
-                if (allAppointmentsResponse.ok) {
-                    const allAppointments = await allAppointmentsResponse.json();
-                    const today = new Date().toISOString().split('T')[0];
-                    
-                    todayAppointments = allAppointments.filter(appointment => {
-                        if (!appointment.fechaCita) return false;
-                        
-                        // Manejar diferentes formatos de fecha
-                        const appointmentDate = new Date(appointment.fechaCita);
-                        const todayDate = new Date();
-                        
-                        return (
-                            appointmentDate.getDate() === todayDate.getDate() &&
-                            appointmentDate.getMonth() === todayDate.getMonth() &&
-                            appointmentDate.getFullYear() === todayDate.getFullYear()
-                        );
-                    });
-                    
-                    console.log('Citas de hoy filtradas localmente:', todayAppointments.length);
-                } else {
-                    throw new Error('No se pudieron cargar las citas');
-                }
-            } catch (filterError) {
-                console.error('Error en enfoque alternativo:', filterError);
-                throw new Error('No se pudieron cargar las citas de hoy');
-            }
+        // Obtener todas las citas
+        const allAppointmentsResponse = await fetch(API_CITAS);
+        if (!allAppointmentsResponse.ok) {
+            throw new Error('Error al cargar citas');
         }
+        
+        const allAppointments = await allAppointmentsResponse.json();
+        console.log('Total de citas en BD:', allAppointments.length);
+        
+        // Filtrar citas de hoy
+        const todayString = getTodayDateString();
+        console.log('Fecha de hoy:', todayString);
+        
+        const todayAppointments = allAppointments.filter(appointment => {
+            if (!appointment.fechaCita) {
+                console.log('Cita sin fecha:', appointment);
+                return false;
+            }
+            
+            const isToday = compareDatesOnly(appointment.fechaCita, todayString);
+            if (isToday) {
+                console.log('Cita de hoy encontrada:', appointment);
+            }
+            return isToday;
+        });
+        
+        console.log('Citas de hoy filtradas:', todayAppointments.length);
         
         // Ocultar estado de carga
         loading.style.display = 'none';
@@ -220,13 +226,13 @@ function createAppointmentElement(appointment) {
             </div>
             <div class="btn-group-vertical ms-3">
                 <button class="btn btn-sm btn-outline-hospital" onclick="startAppointment('${appointment._id}')" ${status !== 'programada' ? 'disabled' : ''}>
-                    <i class="fas fa-play"></i>
+                    <i class="fas fa-play"></i> Iniciar
                 </button>
                 <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appointment._id}')">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-edit"></i> Editar
                 </button>
                 <button class="btn btn-sm btn-outline-danger" onclick="cancelTodayAppointment('${appointment._id}')" ${status === 'cancelada' ? 'disabled' : ''}>
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
             </div>
         </div>
@@ -437,11 +443,7 @@ async function startAppointment(appointmentId) {
             throw new Error('Error al iniciar cita');
         }
         
-        alert('Cita iniciada. Redirigiendo a consulta...');
-        // En una implementación real, aquí redirigirías a la pantalla de consulta
-        // window.location.href = `Consulta.html?cita=${appointmentId}`;
-        
-        // Actualizar la lista de citas
+        alert('Cita iniciada correctamente.');
         await refreshTodayAppointments();
         
     } catch (error) {
@@ -451,35 +453,8 @@ async function startAppointment(appointmentId) {
 }
 
 async function rescheduleAppointment(appointmentId) {
-    const nuevaFecha = prompt('Ingrese la nueva fecha (YYYY-MM-DD):');
-    const nuevaHora = prompt('Ingrese la nueva hora (HH:MM):');
-    
-    if (nuevaFecha && nuevaHora) {
-        try {
-            const response = await fetch(`${API_CITAS}/${appointmentId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    fechaCita: nuevaFecha,
-                    horaCita: nuevaHora,
-                    estado: 'reprogramada'
-                }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Error al reprogramar cita');
-            }
-            
-            alert('Cita reprogramada correctamente.');
-            await refreshTodayAppointments();
-            
-        } catch (error) {
-            console.error('Error reprogramando cita:', error);
-            alert('Error al reprogramar la cita: ' + error.message);
-        }
-    }
+    // Redirigir a la página de citas para editar
+    window.location.href = `Citas/Citas.html?edit=${appointmentId}`;
 }
 
 async function cancelTodayAppointment(appointmentId) {
@@ -555,10 +530,22 @@ function getAppointmentStatusClass(status) {
 function formatAppointmentDate(dateString) {
     if (!dateString) return 'Fecha no especificada';
     
-    const date = new Date(dateString);
+    // Extraer año, mes y día sin conversión de zona horaria
+    let year, month, day;
+    
+    if (dateString.includes('T')) {
+        [year, month, day] = dateString.split('T')[0].split('-');
+    } else {
+        [year, month, day] = dateString.split('-');
+    }
+    
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
     if (isNaN(date.getTime())) return 'Fecha inválida';
     
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     
@@ -574,7 +561,6 @@ function formatAppointmentDate(dateString) {
 
 function formatTime(timeString) {
     if (!timeString) return '--:--';
-    // Asumiendo que timeString está en formato "HH:MM"
     const [hours, minutes] = timeString.split(':');
     return `${hours}:${minutes}`;
 }
@@ -597,7 +583,6 @@ function isSameDay(date1, date2) {
 
 // Función para mostrar notificaciones de error
 function showErrorNotification(message) {
-    // Crear notificación toast de Bootstrap
     const toastContainer = document.getElementById('toast-container') || createToastContainer();
     
     const toastElement = document.createElement('div');
@@ -618,7 +603,6 @@ function showErrorNotification(message) {
     const toast = new bootstrap.Toast(toastElement);
     toast.show();
     
-    // Eliminar el toast después de que se oculte
     toastElement.addEventListener('hidden.bs.toast', () => {
         toastElement.remove();
     });
@@ -635,30 +619,25 @@ function createToastContainer() {
 
 // Funciones de acción para el médico
 function viewPatientDetails(patientId) {
-    alert(`Ver detalles del paciente con ID: ${patientId}`);
-    // En una implementación real, esto cargaría una vista detallada del paciente
+    window.location.href = `Pacientes/Pacientes.html?view=${patientId}`;
 }
 
 function editAppointment(appointmentId) {
-    alert(`Editar cita con ID: ${appointmentId}`);
-    // En una implementación real, esto abriría un formulario para editar la cita
+    window.location.href = `Citas/Citas.html?edit=${appointmentId}`;
 }
 
 function cancelAppointment(appointmentId) {
     if (confirm('¿Está seguro de que desea cancelar esta cita?')) {
-        alert(`Cita con ID: ${appointmentId} cancelada`);
-        // En una implementación real, esto eliminaría la cita y actualizaría la UI
+        cancelTodayAppointment(appointmentId);
     }
 }
 
 function renewPrescription(prescriptionId) {
-    alert(`Renovar receta con ID: ${prescriptionId}`);
-    // En una implementación real, esto crearía una nueva receta basada en la anterior
+    window.location.href = `Recetas/Recetas.html?renew=${prescriptionId}`;
 }
 
 function viewPrescription(prescriptionId) {
-    alert(`Ver receta con ID: ${prescriptionId}`);
-    // En una implementación real, esto mostraría los detalles completos de la receta
+    window.location.href = `Recetas/Recetas.html?view=${prescriptionId}`;
 }
 
 // Función de cierre de sesión
@@ -668,6 +647,7 @@ function logout() {
         window.location.href = '/index.html';
     }
 }
+
 // Inicializar la interfaz cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     initializeDoctorInterface();
