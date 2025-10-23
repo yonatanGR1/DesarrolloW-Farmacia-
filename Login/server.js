@@ -4,6 +4,7 @@ const User = require("./models/User");
 const Paciente = require("./models/Paciente");
 const Receta = require("./models/Receta"); 
 const Cita = require("./models/Cita"); 
+const Diagnostico = require("./models/Diagnostico");
 
 // Para Mostrar si se importaron bien los modelos 
 console.log("✅ Modelo User importado:", User);
@@ -25,12 +26,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/Presentation', express.static(path.join(__dirname, "../Presentation")));
 app.use('/pantallaPaciente', express.static(path.join(__dirname, "../pantallaPaciente")));
-
-// Base de datos temporal
-const USERS = {
-  usuario: "1234",
-  admin: "adminpass"
-};
 
 // Conexión a base de datos Mongo
 mongoose.connect("mongodb://127.0.0.1:27017/miLogin", {
@@ -182,10 +177,6 @@ app.get("/api/doctor/pacientes/:doctorId", async (req, res) => {
   }
 });
 
-// ELIMINA ESTAS RUTAS VIEJAS DE RECETAS - SE MOVIERON AL ROUTER
-// app.post("/api/recetas", async (req, res) => { ... });
-// app.get("/api/pacientes/:id/recetas", async (req, res) => { ... });
-
 //Rutas para Registrar Pacientes 
 app.post("/api/pacientes", async (req, res) => {
   console.log("LLego un nuevo paciente");
@@ -303,12 +294,16 @@ app.put("/api/pacientes/:id", async (req, res) => {
   }
 });
 
-// IMPORTAR RUTAS DE RECETAS - RUTA CORREGIDA
+// IMPORTAR RUTAS DE RECETAS
 const recetasRoutes = require('./routes/recetas');
 app.use('/api/recetas', recetasRoutes);
 
 const citasRoutes = require('./routes/citas'); 
 app.use('/api/citas', citasRoutes); 
+
+// 👇 AGREGAMOS LAS RUTAS DE MEDICATION-TRACKING (NUEVO)
+const medicationTrackingRoutes = require('./routes/medicationTracking');
+app.use('/api/medication-tracking', medicationTrackingRoutes);
 
 // Iniciando El servidor 
 app.listen(PORT, () => {
