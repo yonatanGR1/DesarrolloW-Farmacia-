@@ -359,9 +359,7 @@ async function loadPrescriptionsList() {
                     <button class="btn btn-sm btn-hospital" onclick="viewPrescriptionDetails('${prescription._id}')">
                         <i class="fas fa-eye"></i> Ver Detalles
                     </button>
-                    <button class="btn btn-sm btn-outline-hospital" onclick="printPrescription('${prescription._id}')">
-                        <i class="fas fa-print"></i> Imprimir
-                    </button>
+                  
                     <button class="btn btn-sm btn-outline-danger" onclick="deletePrescription('${prescription._id}')">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
@@ -546,9 +544,7 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
         
         ${!isPreview ? `
             <div class="text-center mt-3">
-                <button class="btn btn-hospital" onclick="printPrescription('${prescription._id}')">
-                    <i class="fas fa-print me-1"></i> Imprimir Receta
-                </button>
+               
             </div>
         ` : ''}
     `;
@@ -557,61 +553,6 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
 // Cerrar vista previa
 function closePrescriptionPreview() {
     document.getElementById('prescriptionPreviewSection').classList.add('hidden');
-}
-
-// Imprimir receta
-async function printPrescription(prescriptionId) {
-    try {
-        const response = await fetch(`${API_RECETAS}/${prescriptionId}`);
-        if (!response.ok) {
-            throw new Error('Error al cargar receta');
-        }
-        
-        const prescription = await response.json();
-        const patientName = `${prescription.pacienteNombre} ${prescription.pacienteApellido}`;
-        
-        const patientData = {
-            name: prescription.pacienteNombre,
-            lastname: prescription.pacienteApellido,
-            age: prescription.pacienteEdad,
-            gender: prescription.pacienteGenero
-        };
-        
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Receta Médica - ${patientName}</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    .prescription-preview { background: white; border: 2px solid #333; padding: 30px; }
-                    .prescription-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-                    .prescription-header h2 { color: #d9e4eaff; margin: 0; }
-                    .prescription-header h4 { color: #666; margin: 5px 0; }
-                    .medication-row { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #ccc; }
-                    .doctor-signature { margin-top: 50px; border-top: 1px solid #333; padding-top: 10px; display: inline-block; min-width: 200px; }
-                    @media print { 
-                        body { margin: 0; } 
-                        .prescription-preview { border: none; padding: 0; }
-                    }
-                </style>
-            </head>
-            <body>
-                ${generatePrescriptionPreview(prescription, patientData, patientName)}
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
-    } catch (error) {
-        console.error('Error imprimiendo receta:', error);
-        alert('Error al imprimir la receta.');
-    }
 }
 
 // Eliminar receta de MongoDB

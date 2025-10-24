@@ -225,9 +225,6 @@ function createAppointmentElement(appointment) {
                 </small>
             </div>
             <div class="btn-group-vertical ms-3">
-                <button class="btn btn-sm btn-outline-hospital" onclick="startAppointment('${appointment._id}')" ${status !== 'programada' ? 'disabled' : ''}>
-                    <i class="fas fa-play"></i> Iniciar
-                </button>
                 <button class="btn btn-sm btn-outline-warning" onclick="rescheduleAppointment('${appointment._id}')">
                     <i class="fas fa-edit"></i> Editar
                 </button>
@@ -428,29 +425,6 @@ async function loadDoctorPrescriptions() {
     }
 }
 
-// Funciones para manejar citas de hoy
-async function startAppointment(appointmentId) {
-    try {
-        const response = await fetch(`${API_CITAS}/${appointmentId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ estado: 'en_progreso' }),
-        });
-        
-        if (!response.ok) {
-            throw new Error('Error al iniciar cita');
-        }
-        
-        alert('Cita iniciada correctamente.');
-        await refreshTodayAppointments();
-        
-    } catch (error) {
-        console.error('Error iniciando cita:', error);
-        alert('Error al iniciar la cita: ' + error.message);
-    }
-}
 
 async function rescheduleAppointment(appointmentId) {
     // Redirigir a la página de citas para editar
