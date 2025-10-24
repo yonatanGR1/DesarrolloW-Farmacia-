@@ -1,190 +1,270 @@
 /* Estilos personalizados para el Portal del Paciente */
-.navbar-hospital {
-    background-color: #2c7db1;
+
+/* Estilos generales */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: margin-right 0.3s ease;
 }
 
-.navbar-hospital .navbar-brand,
-.navbar-hospital .nav-link {
-    color: white !important;
-}
-
-.navbar-hospital .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 5px;
-}
-
-.alert-hospital {
-    background-color: #e3f2fd;
-    border-color: #2c7db1;
-    color: #2c7db1;
-}
-
-.btn-hospital {
-    background-color: #2c7db1;
-    border-color: #2c7db1;
-    color: white;
-}
-
-.btn-hospital:hover {
-    background-color: #1e5a7e;
-    border-color: #1e5a7e;
-    color: white;
-}
-
-.btn-outline-hospital {
-    color: #2c7db1;
-    border-color: #2c7db1;
-}
-
-.btn-outline-hospital:hover {
-    background-color: #2c7db1;
-    color: white;
+body.sidebar-open {
+    margin-right: 400px;
+    overflow: hidden;
 }
 
 /* Tarjetas de resumen */
 .summary-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     border: none;
     border-radius: 10px;
-    transition: transform 0.3s ease;
-    cursor: pointer;
 }
 
 .summary-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.summary-card .nav-link {
+    color: white !important;
+    padding: 0;
+}
+
+.summary-card .nav-link:hover {
+    text-decoration: underline;
 }
 
 /* Secciones */
 .section {
-    animation: fadeIn 0.5s ease-in;
+    margin-top: 20px;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.card-header {
+    background-color: #e9ecef;
+    font-weight: 600;
+    border-bottom: 1px solid #dee2e6;
 }
 
-/* Tarjetas de información del paciente */
-.patient-info-card {
-    border-left: 4px solid #2c7db1;
+/* Botones */
+.btn-outline-hospital {
+    border-color: #6c757d;
+    color: #6c757d;
 }
 
-/* Tarjetas de listas - SOLO LECTURA */
-.prescription-card, .appointment-card, .diagnosis-card {
-    border-left: 4px solid #2c7db1;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    background-color: #f8f9fa;
+.btn-outline-hospital:hover {
+    background-color: #6c757d;
+    color: white;
 }
 
-.prescription-card.expired {
-    border-left-color: #dc3545;
-    background-color: #f8f9fa;
-}
-
-.prescription-card.active {
-    border-left-color: #2865a7;
-}
-
-.appointment-card.past {
-    border-left-color: #6c757d;
-    background-color: #f8f9fa;
-}
-
-.appointment-card.upcoming {
-    border-left-color: #075eff;
-}
-
+/* Tarjetas de información */
+.prescription-card.active,
+.appointment-card.upcoming,
 .appointment-card.today {
-    border-left-color: #2833a7;
-    background-color: #d4edda;
+    border-left: 4px solid #28a745;
 }
 
-/* Badges */
-.status-badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+.prescription-card.expired,
+.appointment-card.past {
+    border-left: 4px solid #dc3545;
 }
 
-/* Botones de acción SOLO LECTURA */
-.btn-action {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-/* Mejoras visuales para solo lectura */
 .read-only-card {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
+    cursor: default;
 }
 
-.read-only-card .btn {
-    display: none; /* Ocultar botones en vista de paciente */
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .summary-card .card-body {
-        padding: 1rem;
-    }
-    
-    .summary-card h5 {
-        font-size: 1.25rem;
-    }
-}
-
-/* Estilos para impresión */
-@media print {
-    .navbar, .footer, .btn, .alert {
-        display: none !important;
-    }
-    
-    .prescription-card {
-        border: 1px solid #000 !important;
-        page-break-inside: avoid;
-    }
-}
-/* Estilos para el control de medicamentos */
 .medication-card {
     transition: all 0.3s ease;
 }
 
 .medication-card:hover {
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transform: translateY(-2px);
 }
 
 .bg-light-success {
-    background-color: rgba(25, 135, 84, 0.1) !important;
-    border-color: #198754 !important;
+    background-color: rgba(40, 167, 69, 0.1) !important;
 }
 
+.bg-light-warning {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+/* ========== SIDEBAR DE NOTIFICACIONES ========== */
+
+.notifications-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100%;
+    background-color: white;
+    box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    z-index: 1060;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.notifications-sidebar.open {
+    right: 0;
+}
+
+.notifications-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1055;
+    display: none;
+}
+
+.notifications-overlay.show {
+    display: block;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.notifications-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notifications-actions {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.notification-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+}
+
+/* Elementos individuales de notificación */
+.notification-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-item.unread {
+    background-color: #f0f7ff;
+}
+
+.notification-item.unread:hover {
+    background-color: #e6f2ff;
+}
+
+/* Indicador de notificación no leída */
+.unread-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 5px;
+}
+
+/* Estados de las notificaciones */
+.notification-success {
+    border-left: 3px solid #28a745;
+}
+
+.notification-warning {
+    border-left: 3px solid #ffc107;
+}
+
+.notification-info {
+    border-left: 3px solid #17a2b8;
+}
+
+.notification-primary {
+    border-left: 3px solid #007bff;
+}
+
+/* Toast de notificaciones */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1060;
+    min-width: 300px;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .notifications-sidebar {
+        width: 100%;
+        right: -100%;
+    }
+    
+    body.sidebar-open {
+        margin-right: 100%;
+    }
+}
+
+/* Estilos para el historial de medicamentos */
+.medication-history {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+/* Estados de disponibilidad de medicamentos */
+.medication-available {
+    border: 2px solid #28a745;
+}
+
+.medication-pending {
+    border: 2px solid #ffc107;
+}
+
+.medication-taken {
+    border: 2px solid #6c757d;
+    opacity: 0.8;
+}
+
+/* Barras de progreso */
 .progress {
     border-radius: 10px;
 }
 
 .progress-bar {
     border-radius: 10px;
-    transition: width 0.5s ease;
 }
 
-/* Estilos para las notificaciones */
-.alert {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* Tarjetas de información del paciente */
+#patient-info p {
+    margin-bottom: 8px;
 }
 
-/* Mejoras visuales para las tarjetas de medicamentos */
-.medication-item {
-    border-left: 3px solid #0d6efd;
-    padding-left: 10px;
+/* Efectos de hover en tarjetas */
+.card {
+    transition: box-shadow 0.3s ease;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .btn-group {
-        width: 100%;
-    }
-    
-    .btn-group .btn {
-        flex: 1;
-    }
+.card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }

@@ -19,11 +19,9 @@
 </head>
 <body>
     <!-- Navbar -->
-   <!-- REEMPLAZAR el navbar completo en pantallaPaciente.html con este código -->
-
-<nav class="navbar navbar-expand-lg navbar-light bg-info">
-    <div class="container">
-           <a class="nav-link" href="\Presentation\PatientInterface\PacienteH.html">
+    <nav class="navbar navbar-expand-lg navbar-light bg-info">
+        <div class="container">
+            <a class="nav-link" href="\Presentation\PatientInterface\PacienteH.html">
                 <i class="fas fa-hospital me-2"></i>Hospital La Paz
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -32,53 +30,50 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        
+                        <!-- Puedes agregar más items aquí si necesitas -->
                     </li>
                 </ul>
                 <div class="d-flex align-items-center">
-
-                <!-- Puedes agregar más items aquí si necesitas -->
-            </ul>
-            <div class="d-flex align-items-center">
-                <!-- ✅ CAMPANA DE NOTIFICACIONES -->
-                <div class="dropdown me-3">
-                    <button class="btn btn-outline-primary position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <!-- ✅ CAMPANA DE NOTIFICACIONES - Ahora abre una sidebar -->
+                    <button class="btn btn-outline-primary position-relative me-3" type="button" onclick="toggleNotificationsSidebar()">
                         <i class="fas fa-bell fa-lg"></i>
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notification-badge" style="display: none;">
                             0
                         </span>
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
-                        <div class="dropdown-header d-flex justify-content-between align-items-center">
-                            <span><strong><i class="fas fa-bell me-2"></i>Notificaciones</strong></span>
-                            <button class="btn btn-sm btn-link text-decoration-none p-0" onclick="markAllAsRead()" style="font-size: 0.75rem;">
-                                Marcar todas
-                            </button>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <div id="notification-list">
-                            <div class="dropdown-item-text text-center text-muted py-4">
-                                <i class="fas fa-bell-slash fs-3 mb-2 d-block"></i>
-                                <small>No hay notificaciones</small>
-                            </div>
-                        </div>
-                    </div>
+                    
+                    <!-- Nombre de usuario -->
+                    <span class="navbar-text me-3">
+                        <i class="fas fa-user me-1"></i>
+                        <span id="user-display-name">Paciente</span>
+                    </span>
+                    
+                    <!-- Botón de cerrar sesión -->
+                    <button class="btn btn-outline-hospital text-dark" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+                    </button>
                 </div>
-                
-                <!-- Nombre de usuario -->
-                <span class="navbar-text me-3">
-                    <i class="fas fa-user me-1"></i>
-                    <span id="user-display-name">Paciente</span>
-                </span>
-                
-                <!-- Botón de cerrar sesión -->
-               <button class="btn btn-outline-hospital text-dark" onclick="logout()">
-    <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
-</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar de Notificaciones -->
+    <div id="notifications-sidebar" class="notifications-sidebar">
+        <div class="notifications-header">
+            <h5><i class="fas fa-bell me-2"></i>Notificaciones</h5>
+            <button type="button" class="btn-close" aria-label="Cerrar" onclick="toggleNotificationsSidebar()"></button>
+        </div>
+        <div class="notifications-body">
+            <div class="notifications-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="markAllAsRead()">Marcar todas como leídas</button>
+            </div>
+            <div id="notification-list" class="notification-list">
+                <!-- Las notificaciones se cargarán aquí -->
             </div>
         </div>
     </div>
-</nav>
+    <div id="notifications-overlay" class="notifications-overlay" onclick="toggleNotificationsSidebar()"></div>
+
     <main class="container my-4">
         <!-- Tarjetas de Resumen -->
         <div class="row mb-4" id="resumen-cards">
@@ -285,7 +280,8 @@
             </div>
         </div>
     </main>
-      <!-- Bootstrap JS -->
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Archivos JavaScript separados -->

@@ -43,7 +43,7 @@ async function initializePatientPortal() {
     setInterval(cleanOldNotifications, 24 * 60 * 60 * 1000);
 }
 
-// ========== SISTEMA DE NOTIFICACIONES ==========
+// ========== SIDEBAR DE NOTIFICACIONES ==========
 
 // Inicializar sistema de notificaciones
 function initializeNotifications() {
@@ -146,8 +146,7 @@ function addNotification(notification) {
 // Mostrar notificación toast
 function showNotificationToast(notification) {
     const toast = document.createElement('div');
-    toast.className = 'position-fixed top-0 end-0 p-3';
-    toast.style.zIndex = '1060';
+    toast.className = 'notification-toast';
     toast.innerHTML = `
         <div class="toast show" role="alert">
             <div class="toast-header ${getNotificationColor(notification.type)}">
@@ -188,7 +187,25 @@ function getNotificationColor(type) {
     return colors[type] || 'bg-primary text-white';
 }
 
-// Actualizar display de notificaciones
+// Alternar la sidebar de notificaciones
+function toggleNotificationsSidebar() {
+    const sidebar = document.getElementById('notifications-sidebar');
+    const overlay = document.getElementById('notifications-overlay');
+    const body = document.body;
+    
+    if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+        body.classList.remove('sidebar-open');
+    } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+        body.classList.add('sidebar-open');
+        updateNotificationDisplay();
+    }
+}
+
+// Actualizar display de notificaciones - VERSIÓN MEJORADA CON SIDEBAR
 function updateNotificationDisplay() {
     const badge = document.getElementById('notification-badge');
     const notificationList = document.getElementById('notification-list');
@@ -205,25 +222,27 @@ function updateNotificationDisplay() {
         badge.style.display = 'none';
     }
     
-    // Actualizar lista de notificaciones
+    // Actualizar lista de notificaciones en la sidebar
     if (notifications.length === 0) {
         notificationList.innerHTML = `
-            <div class="dropdown-item-text text-center text-muted py-4">
+            <div class="text-center text-muted py-4">
                 <i class="fas fa-bell-slash fs-3 mb-2 d-block"></i>
                 <small>No hay notificaciones</small>
             </div>
         `;
     } else {
         notificationList.innerHTML = notifications.map(notification => `
-            <div class="dropdown-item ${notification.read ? '' : 'bg-light'} border-bottom p-3" 
+            <div class="notification-item ${notification.read ? '' : 'unread'} ${getNotificationBorderClass(notification.type)}" 
                  onclick="markNotificationAsRead('${notification.id}')">
                 <div class="d-flex w-100 justify-content-between align-items-start">
                     <div class="flex-grow-1">
-                        <h6 class="mb-1 ${notification.read ? '' : 'text-primary'}">${notification.title}</h6>
-                        <p class="mb-1">${notification.message}</p>
+                        <h6 class="mb-1 ${notification.read ? '' : 'text-primary'}">
+                            ${!notification.read ? '<span class="unread-indicator"></span>' : ''}
+                            ${notification.title}
+                        </h6>
+                        <p class="mb-1 small">${notification.message}</p>
                         <small class="text-muted">${formatDateTime(notification.timestamp)}</small>
                     </div>
-                    ${!notification.read ? '<span class="badge bg-primary ms-2">Nuevo</span>' : ''}
                 </div>
                 ${notification.medicationName ? `
                     <div class="mt-2">
@@ -237,6 +256,18 @@ function updateNotificationDisplay() {
     }
 }
 
+// Obtener clase de borde para notificación
+function getNotificationBorderClass(type) {
+    const classes = {
+        'medication_available': 'notification-success',
+        'medication_reminder': 'notification-warning',
+        'medication_taken': 'notification-info',
+        'appointment_reminder': 'notification-primary',
+        'general': 'notification-primary'
+    };
+    return classes[type] || 'notification-primary';
+}
+
 // Marcar notificación como leída
 function markNotificationAsRead(notificationId) {
     const notification = notifications.find(n => n.id === notificationId);
@@ -248,6 +279,7 @@ function markNotificationAsRead(notificationId) {
         // Si es una notificación de medicamento, redirigir a la sección
         if (notification.type.includes('medication')) {
             showSection('medicamentos');
+            toggleNotificationsSidebar();
         }
     }
 }
@@ -265,6 +297,7 @@ function markAllAsRead() {
 function handleNotificationAction(notificationId) {
     markNotificationAsRead(notificationId);
     showSection('medicamentos');
+    toggleNotificationsSidebar();
 }
 
 // Limpiar notificaciones antiguas (más de 7 días)
@@ -685,11 +718,11 @@ function renderMedications() {
         // Determinar clase CSS basada en el estado
         let cardClass = 'medication-card border p-3 mb-3 rounded';
         if (!disponible && ultimaToma) {
-            cardClass += ' border-success bg-light-success'; // Tomado recientemente
+            cardClass += ' medication-taken'; // Tomado recientemente
         } else if (disponible && historialMedicamento.length > 0) {
-            cardClass += ' border-warning bg-light-warning'; // Pendiente de tomar
+            cardClass += ' medication-pending'; // Pendiente de tomar
         } else {
-            cardClass += ' border-primary'; // Nunca tomado
+            cardClass += ' medication-available'; // Nunca tomado
         }
 
         return `
@@ -754,9 +787,9 @@ function renderMedications() {
                 ${historialMedicamento.length > 0 ? `
                     <div class="mt-3">
                         <h6>Últimas tomas:</h6>
-                        <div class="d-flex flex-wrap gap-2">
+                        <div class="medication-history">
                             ${historialMedicamento.slice(0, 5).map(record => `
-                                <span class="badge bg-light text-dark">
+                                <span class="badge bg-light text-dark me-1 mb-1">
                                     ${formatDateTime(record.fechaToma)}
                                 </span>
                             `).join('')}
@@ -893,12 +926,13 @@ function filterMedications(filter) {
     const cards = container.querySelectorAll('.medication-card');
     
     cards.forEach(card => {
-        const isTaken = card.classList.contains('bg-light-success');
-        const isPending = card.classList.contains('bg-light-warning');
+        const isTaken = card.classList.contains('medication-taken');
+        const isPending = card.classList.contains('medication-pending');
+        const isAvailable = card.classList.contains('medication-available');
         
         switch (filter) {
             case 'active':
-                card.style.display = (isPending || !isTaken) ? 'block' : 'none';
+                card.style.display = (isPending || isAvailable) ? 'block' : 'none';
                 break;
             case 'completed':
                 card.style.display = isTaken ? 'block' : 'none';
