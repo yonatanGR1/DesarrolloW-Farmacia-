@@ -9,6 +9,9 @@ async function initializePrescriptionManager() {
     await loadPrescriptionsList();
     setDefaultDates();
     
+    // Cargar parámetros de la URL (si viene desde diagnóstico)
+    loadUrlParameters();
+    
     // Configurar el formulario
     document.getElementById('prescriptionForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -22,6 +25,97 @@ async function initializePrescriptionManager() {
     
     // Verificar si hay un paciente seleccionado desde el módulo de pacientes
     checkSelectedPatient();
+}
+
+// Cargar parámetros de la URL cuando venga desde diagnóstico
+function loadUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    const pacienteId = urlParams.get('pacienteId');
+    const pacienteNombre = urlParams.get('pacienteNombre');
+    const pacienteApellido = urlParams.get('pacienteApellido');
+    const diagnosticoId = urlParams.get('diagnosticoId');
+    const tipoDiagnostico = urlParams.get('tipoDiagnostico');
+
+    console.log('Datos recibidos desde diagnóstico:', { 
+        pacienteId, 
+        pacienteNombre, 
+        pacienteApellido, 
+        diagnosticoId, 
+        tipoDiagnostico 
+    });
+
+    // Si hay parámetros, preseleccionar el paciente
+    if (pacienteId && pacienteNombre && pacienteApellido) {
+        setTimeout(() => {
+            preselectPatient(pacienteId, pacienteNombre, pacienteApellido, tipoDiagnostico);
+        }, 1000);
+    }
+}
+
+// Preseleccionar paciente cuando venga desde diagnóstico
+function preselectPatient(pacienteId, pacienteNombre, pacienteApellido, tipoDiagnostico) {
+    const patientSelect = document.getElementById('patientSelect');
+    
+    // Buscar si el paciente existe en las opciones
+    let patientFound = false;
+    for (let i = 0; i < patientSelect.options.length; i++) {
+        if (patientSelect.options[i].value === pacienteId) {
+            patientSelect.value = pacienteId;
+            patientFound = true;
+            break;
+        }
+    }
+    
+    // Si no existe, agregarlo como opción
+    if (!patientFound && pacienteId) {
+        const option = document.createElement('option');
+        option.value = pacienteId;
+        option.textContent = `${pacienteNombre} ${pacienteApellido}`;
+        option.setAttribute('data-patient', JSON.stringify({
+            _id: pacienteId,
+            nombre: pacienteNombre,
+            apellido: pacienteApellido,
+            edad: 'No especificada',
+            genero: 'No especificado'
+        }));
+        patientSelect.appendChild(option);
+        patientSelect.value = pacienteId;
+    }
+    
+    // Mostrar mensaje informativo
+    if (patientSelect.value === pacienteId) {
+        showPatientSelectionMessage(pacienteNombre, pacienteApellido, tipoDiagnostico);
+        
+        // Scroll al formulario
+        document.getElementById('prescriptionForm').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Mostrar mensaje cuando un paciente es seleccionado automáticamente
+function showPatientSelectionMessage(pacienteNombre, pacienteApellido, tipoDiagnostico) {
+    const form = document.getElementById('prescriptionForm');
+    const existingMessage = document.getElementById('patientSelectionMessage');
+    
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.id = 'patientSelectionMessage';
+    messageDiv.className = 'alert alert-info alert-dismissible fade show mt-3';
+    messageDiv.innerHTML = `
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Paciente desde diagnóstico:</strong> ${pacienteNombre} ${pacienteApellido}
+        ${tipoDiagnostico ? `| <strong>Diagnóstico:</strong> ${tipoDiagnostico}` : ''}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insertar después del título o en una posición visible
+    const cardBody = document.querySelector('.card-body');
+    if (cardBody) {
+        cardBody.insertBefore(messageDiv, cardBody.querySelector('form'));
+    }
 }
 
 // Obtener lista de pacientes desde la API
@@ -66,36 +160,19 @@ function checkSelectedPatient() {
     
     if (selectedPatientId) {
         document.getElementById('patientSelect').value = selectedPatientId;
-        showPatientSelectionMessage(selectedPatientId);
+        showPatientSelectionMessageFromStorage(selectedPatientId);
         localStorage.removeItem('selectedPatientForPrescription');
     }
 }
 
-// Mostrar mensaje cuando un paciente es seleccionado automáticamente
-async function showPatientSelectionMessage(patientId) {
+// Mostrar mensaje cuando un paciente es seleccionado desde almacenamiento
+async function showPatientSelectionMessageFromStorage(patientId) {
     try {
         const patients = await getPatients();
         const patient = patients.find(p => p._id === patientId);
         
         if (patient) {
-            const form = document.getElementById('prescriptionForm');
-            const existingMessage = document.getElementById('patientSelectionMessage');
-            
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.id = 'patientSelectionMessage';
-            messageDiv.className = 'alert alert-info alert-dismissible fade show';
-            messageDiv.innerHTML = `
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Paciente seleccionado:</strong> ${patient.nombre} ${patient.apellido}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            form.insertBefore(messageDiv, form.firstChild);
-            form.scrollIntoView({ behavior: 'smooth' });
+            showPatientSelectionMessage(patient.nombre, patient.apellido, '');
         }
     } catch (error) {
         console.error('Error mostrando mensaje de selección:', error);
@@ -192,6 +269,10 @@ async function createPrescription() {
         const selectedOption = patientSelect.options[patientSelect.selectedIndex];
         const patientData = JSON.parse(selectedOption.getAttribute('data-patient'));
         
+        // Obtener diagnósticoId de la URL si existe
+        const urlParams = new URLSearchParams(window.location.search);
+        const diagnosticoId = urlParams.get('diagnosticoId');
+        
         const nuevaReceta = {
             pacienteId: patientId,
             pacienteNombre: patientData.nombre,
@@ -210,7 +291,9 @@ async function createPrescription() {
             instruccionesGenerales: generalInstructions,
             notasMedico: doctorNotes,
             doctorNombre: "Dr. Juan Pérez",
-            estado: 'activa'
+            estado: 'activa',
+            // Agregar referencia al diagnóstico si existe
+            ...(diagnosticoId && { diagnosticoId: diagnosticoId })
         };
         
         const response = await fetch(API_RECETAS, {
@@ -234,10 +317,14 @@ async function createPrescription() {
         resetMedicationsForm();
         setDefaultDates();
         
+        // Limpiar mensajes y parámetros de URL
         const messageDiv = document.getElementById('patientSelectionMessage');
         if (messageDiv) {
             messageDiv.remove();
         }
+        
+        // Limpiar parámetros de la URL
+        window.history.replaceState({}, '', window.location.pathname);
         
         alert('Receta emitida correctamente.');
         
@@ -590,9 +677,10 @@ function formatDate(dateString) {
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
         localStorage.removeItem('currentPatient');
-        window.location.href = '/index.html';
+        window.location.href = '../../index.html';
     }
 }
+
 // Inicializar la gestión de recetas cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     initializePrescriptionManager();
