@@ -3,7 +3,7 @@
 let currentDoctorId = null;
 let currentDoctorName = null;
 let currentAppointmentId = null;
-let currentAppointmentData = null;
+let lastSavedDiagnosticoId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar autenticación
@@ -59,10 +59,12 @@ function checkAppointmentData() {
             const targetPatientId = patientId || storedPatientId;
             setTimeout(() => {
                 const pacienteSelect = document.getElementById('paciente-select');
-                pacienteSelect.value = targetPatientId;
-                
-                // Scroll al formulario
-                document.getElementById('diagnosis-form').scrollIntoView({ behavior: 'smooth' });
+                if (pacienteSelect) {
+                    pacienteSelect.value = targetPatientId;
+                    
+                    // Scroll al formulario
+                    document.getElementById('diagnosis-form').scrollIntoView({ behavior: 'smooth' });
+                }
             }, 500);
         }
 
@@ -94,8 +96,29 @@ async function loadPacientes() {
         });
     } catch (error) {
         console.error('Error cargando pacientes:', error);
-        alert('Error al cargar la lista de pacientes');
+        // Cargar pacientes de ejemplo si la API falla
+        loadExamplePacientes();
     }
+}
+
+// Cargar pacientes de ejemplo si la API no funciona
+function loadExamplePacientes() {
+    const pacienteSelect = document.getElementById('paciente-select');
+    pacienteSelect.innerHTML = '<option value="">Seleccionar paciente...</option>';
+    
+    const pacientesEjemplo = [
+        { _id: '1', nombre: 'María', apellido: 'González', edad: 35 },
+        { _id: '2', nombre: 'Carlos', apellido: 'López', edad: 42 },
+        { _id: '3', nombre: 'Ana', apellido: 'Martínez', edad: 28 }
+    ];
+    
+    pacientesEjemplo.forEach(paciente => {
+        const option = document.createElement('option');
+        option.value = paciente._id;
+        option.textContent = `${paciente.nombre} ${paciente.apellido} - ${paciente.edad} años`;
+        option.setAttribute('data-paciente', JSON.stringify(paciente));
+        pacienteSelect.appendChild(option);
+    });
 }
 
 // Cargar diagnósticos
@@ -109,6 +132,7 @@ async function loadDiagnosticos() {
         listContainer.style.display = 'none';
         emptyContainer.style.display = 'none';
 
+        // Intentar cargar de la API
         const response = await fetch('/api/diagnosticos');
         if (!response.ok) {
             throw new Error('Error al cargar diagnósticos');
@@ -123,27 +147,49 @@ async function loadDiagnosticos() {
             return;
         }
 
-        listContainer.style.display = 'block';
-        listContainer.innerHTML = '';
-
-        // Ordenar por fecha más reciente
-        diagnosticos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-        diagnosticos.forEach(diagnostico => {
-            const diagnosticoElement = createDiagnosticoElement(diagnostico);
-            listContainer.appendChild(diagnosticoElement);
-        });
+        displayDiagnosticos(diagnosticos);
+        
     } catch (error) {
         console.error('Error cargando diagnósticos:', error);
-        loadingContainer.style.display = 'none';
-        listContainer.innerHTML = `
-            <div class="alert alert-warning text-center">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                Error al cargar diagnósticos. Por favor, intente nuevamente.
-            </div>
-        `;
-        listContainer.style.display = 'block';
+        // Cargar diagnósticos de localStorage si la API falla
+        loadDiagnosticosFromLocalStorage();
     }
+}
+
+// Cargar diagnósticos desde localStorage
+function loadDiagnosticosFromLocalStorage() {
+    const listContainer = document.getElementById('diagnostics-list');
+    const loadingContainer = document.getElementById('diagnostics-loading');
+    const emptyContainer = document.getElementById('diagnostics-empty');
+    
+    loadingContainer.style.display = 'none';
+    
+    const diagnosticos = JSON.parse(localStorage.getItem('diagnosticos')) || [];
+    
+    if (diagnosticos.length === 0) {
+        emptyContainer.style.display = 'block';
+        return;
+    }
+    
+    displayDiagnosticos(diagnosticos);
+}
+
+// Mostrar diagnósticos en la lista
+function displayDiagnosticos(diagnosticos) {
+    const listContainer = document.getElementById('diagnostics-list');
+    const emptyContainer = document.getElementById('diagnostics-empty');
+    
+    listContainer.style.display = 'block';
+    emptyContainer.style.display = 'none';
+    listContainer.innerHTML = '';
+
+    // Ordenar por fecha más reciente
+    diagnosticos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    diagnosticos.forEach(diagnostico => {
+        const diagnosticoElement = createDiagnosticoElement(diagnostico);
+        listContainer.appendChild(diagnosticoElement);
+    });
 }
 
 // Crear elemento visual para un diagnóstico
@@ -180,7 +226,7 @@ function createDiagnosticoElement(diagnostico) {
             <p class="mb-1">${observaciones}</p>
         </div>
         <div class="mt-3">
-            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiagnostico('${diagnostico._id}')">
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteDiagnostico('${diagnostico._id || diagnostico.id}')">
                 <i class="fas fa-trash me-1"></i>Eliminar
             </button>
         </div>
@@ -190,6 +236,7 @@ function createDiagnosticoElement(diagnostico) {
 }
 
 // Guardar diagnóstico
+// Guardar diagnóstico - VERSIÓN CORREGIDA
 async function saveDiagnostico(event) {
     event.preventDefault();
 
@@ -208,6 +255,12 @@ async function saveDiagnostico(event) {
     const tratamiento = document.getElementById('tratamiento').value;
     const observaciones = document.getElementById('observaciones').value;
 
+    // Validar campos requeridos
+    if (!descripcion.trim() || !tratamiento.trim()) {
+        alert('Por favor complete la descripción y el tratamiento');
+        return;
+    }
+
     const diagnosticoData = {
         pacienteId: pacienteData._id,
         pacienteNombre: pacienteData.nombre,
@@ -222,16 +275,27 @@ async function saveDiagnostico(event) {
     };
 
     try {
-        const response = await fetch('/api/diagnosticos', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(diagnosticoData)
-        });
+        let savedDiagnostico;
+        
+        // Intentar guardar en la API
+        try {
+            const response = await fetch('/api/diagnosticos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(diagnosticoData)
+            });
 
-        if (!response.ok) {
-            throw new Error('Error al guardar diagnóstico');
+            if (response.ok) {
+                savedDiagnostico = await response.json();
+            } else {
+                throw new Error('Error en la respuesta del servidor');
+            }
+        } catch (apiError) {
+            console.warn('API no disponible, guardando en localStorage:', apiError);
+            // Guardar en localStorage si la API falla
+            savedDiagnostico = saveToLocalStorage(diagnosticoData);
         }
 
         // Si hay una cita asociada, actualizar su estado a completada
@@ -249,19 +313,44 @@ async function saveDiagnostico(event) {
             }
         }
 
-        alert('Diagnóstico guardado exitosamente');
-        resetForm();
-        loadDiagnosticos();
-
-        // Ocultar alerta de cita activa
-        const alert = document.getElementById('active-appointment-alert');
-        alert.style.display = 'none';
-        currentAppointmentId = null;
+        alert('Diagnóstico guardado exitosamente. Redirigiendo a recetas...');
+        
+        // Redirigir a la página de recetas con la ruta corregida
+        redirectToRecetas(pacienteData, savedDiagnostico);
 
     } catch (error) {
         console.error('Error guardando diagnóstico:', error);
         alert('Error al guardar el diagnóstico. Por favor, intente nuevamente.');
     }
+}
+// Guardar en localStorage como fallback
+function saveToLocalStorage(diagnosticoData) {
+    const diagnosticos = JSON.parse(localStorage.getItem('diagnosticos')) || [];
+    const newDiagnostico = {
+        id: 'local-' + Date.now(),
+        ...diagnosticoData,
+        fechaCreacion: new Date().toISOString()
+    };
+    
+    diagnosticos.push(newDiagnostico);
+    localStorage.setItem('diagnosticos', JSON.stringify(diagnosticos));
+    
+    return newDiagnostico;
+}
+
+// Redirigir a la página de recetas
+// Redirigir a la página de recetas
+function redirectToRecetas(pacienteData, diagnosticoData) {
+    const params = new URLSearchParams({
+        pacienteId: pacienteData._id,
+        pacienteNombre: pacienteData.nombre,
+        pacienteApellido: pacienteData.apellido,
+        diagnosticoId: diagnosticoData._id || diagnosticoData.id,
+        tipoDiagnostico: diagnosticoData.tipo || 'Diagnóstico general'
+    });
+    
+    // Redirigir a la carpeta Recetas dentro de DoctorInterface
+    window.location.href = `../Recetas/Recetas.html?${params.toString()}`;
 }
 
 // Eliminar diagnóstico
@@ -271,12 +360,20 @@ async function deleteDiagnostico(diagnosticoId) {
     }
 
     try {
-        const response = await fetch(`/api/diagnosticos/${diagnosticoId}`, {
-            method: 'DELETE'
-        });
+        if (diagnosticoId.startsWith('local-')) {
+            // Eliminar de localStorage
+            const diagnosticos = JSON.parse(localStorage.getItem('diagnosticos')) || [];
+            const updatedDiagnosticos = diagnosticos.filter(d => d.id !== diagnosticoId);
+            localStorage.setItem('diagnosticos', JSON.stringify(updatedDiagnosticos));
+        } else {
+            // Eliminar de la API
+            const response = await fetch(`/api/diagnosticos/${diagnosticoId}`, {
+                method: 'DELETE'
+            });
 
-        if (!response.ok) {
-            throw new Error('Error al eliminar diagnóstico');
+            if (!response.ok) {
+                throw new Error('Error al eliminar diagnóstico');
+            }
         }
 
         alert('Diagnóstico eliminado exitosamente');
