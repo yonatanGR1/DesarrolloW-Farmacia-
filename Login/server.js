@@ -27,11 +27,11 @@ const Cita = require("./models/Cita");
 const Diagnostico = require("./models/Diagnostico");
 
 // Verificar que los modelos se importaron correctamente
-console.log("✅ Modelo User importado:", !!User);
-console.log("✅ Modelo Paciente importado:", !!Paciente);
-console.log("✅ Modelo Receta importado:", !!Receta);
-console.log("✅ Modelo Cita importado:", !!Cita);
-console.log("✅ Modelo Diagnostico importado:", !!Diagnostico);
+console.log(" Modelo User importado:", !!User);
+console.log(" Modelo Paciente importado:", !!Paciente);
+console.log(" Modelo Receta importado:", !!Receta);
+console.log(" Modelo Cita importado:", !!Cita);
+console.log("Modelo Diagnostico importado:", !!Diagnostico);
 
 // Conexión a MongoDB
 mongoose.connect("mongodb://127.0.0.1:27017/miLogin", {

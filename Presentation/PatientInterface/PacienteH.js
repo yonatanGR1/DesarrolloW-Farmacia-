@@ -2,6 +2,8 @@
 let currentPatient = null;
 let activeMedications = [];
 let medicationHistory = [];
+let notifications = [];
+let notificationCheckInterval = null;
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
@@ -30,12 +32,254 @@ async function initializePatientPortal() {
     await loadPatientData();
     await loadAllPatientData();
     await loadMedicationTracking();
+    initializeNotifications();
     setupEventListeners();
     updateTodayDate();
     
     // Actualizar cada minuto para mostrar tiempos reales
     setInterval(updateMedicationDisplays, 60000);
+    
+    // Limpiar notificaciones antiguas cada día
+    setInterval(cleanOldNotifications, 24 * 60 * 60 * 1000);
 }
+
+// ========== SISTEMA DE NOTIFICACIONES ==========
+
+// Inicializar sistema de notificaciones
+function initializeNotifications() {
+    loadNotifications();
+    startNotificationChecker();
+    updateNotificationDisplay();
+}
+
+// Cargar notificaciones desde localStorage
+function loadNotifications() {
+    const stored = localStorage.getItem('patientNotifications');
+    if (stored) {
+        notifications = JSON.parse(stored);
+    }
+}
+
+// Guardar notificaciones en localStorage
+function saveNotifications() {
+    localStorage.setItem('patientNotifications', JSON.stringify(notifications));
+}
+
+// Iniciar verificador de notificaciones
+function startNotificationChecker() {
+    // Verificar cada 30 segundos
+    notificationCheckInterval = setInterval(checkMedicationNotifications, 30000);
+    // Verificar inmediatamente al cargar
+    checkMedicationNotifications();
+}
+
+// Verificar notificaciones de medicamentos
+function checkMedicationNotifications() {
+    if (!activeMedications || activeMedications.length === 0) return;
+
+    const now = new Date();
+    
+    activeMedications.forEach(med => {
+        const disponibilidad = calcularDisponibilidadMedicamento(med.nombre, med.recetaId, med.frecuencia);
+        
+        // Si el medicamento está disponible y no tenemos una notificación reciente
+        if (disponibilidad.disponible) {
+            const existingNotification = notifications.find(n => 
+                n.medicationId === med.id && 
+                n.type === 'medication_available' &&
+                !n.read
+            );
+
+            if (!existingNotification) {
+                addNotification({
+                    type: 'medication_available',
+                    title: '💊 Medicamento Disponible',
+                    message: `${med.nombre} está listo para tomar`,
+                    medicationId: med.id,
+                    medicationName: med.nombre,
+                    timestamp: new Date().toISOString(),
+                    read: false
+                });
+            }
+        }
+
+        // Notificación para medicamentos que pronto estarán disponibles
+        if (disponibilidad.proximaToma) {
+            const tiempoRestante = new Date(disponibilidad.proximaToma) - now;
+            // Notificar 5 minutos antes de que esté disponible
+            if (tiempoRestante > 0 && tiempoRestante <= 5 * 60 * 1000) {
+                const existingReminder = notifications.find(n => 
+                    n.medicationId === med.id && 
+                    n.type === 'medication_reminder' &&
+                    !n.read
+                );
+
+                if (!existingReminder) {
+                    addNotification({
+                        type: 'medication_reminder',
+                        title: '⏰ Recordatorio de Medicamento',
+                        message: `${med.nombre} estará disponible en 5 minutos`,
+                        medicationId: med.id,
+                        medicationName: med.nombre,
+                        timestamp: new Date().toISOString(),
+                        read: false
+                    });
+                }
+            }
+        }
+    });
+}
+
+// Agregar nueva notificación
+function addNotification(notification) {
+    notification.id = Date.now().toString();
+    notifications.unshift(notification);
+    saveNotifications();
+    updateNotificationDisplay();
+    
+    // Mostrar notificación toast si la página está visible
+    if (document.visibilityState === 'visible') {
+        showNotificationToast(notification);
+    }
+}
+
+// Mostrar notificación toast
+function showNotificationToast(notification) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed top-0 end-0 p-3';
+    toast.style.zIndex = '1060';
+    toast.innerHTML = `
+        <div class="toast show" role="alert">
+            <div class="toast-header ${getNotificationColor(notification.type)}">
+                <strong class="me-auto">${notification.title}</strong>
+                <small>ahora</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${notification.message}
+                <div class="mt-2 pt-2 border-top">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="handleNotificationAction('${notification.id}')">
+                        Ver Medicamentos
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remover después de 8 segundos
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 8000);
+}
+
+// Obtener color para el tipo de notificación
+function getNotificationColor(type) {
+    const colors = {
+        'medication_available': 'bg-success text-white',
+        'medication_reminder': 'bg-warning text-dark',
+        'medication_taken': 'bg-info text-white',
+        'appointment_reminder': 'bg-primary text-white',
+        'general': 'bg-primary text-white'
+    };
+    return colors[type] || 'bg-primary text-white';
+}
+
+// Actualizar display de notificaciones
+function updateNotificationDisplay() {
+    const badge = document.getElementById('notification-badge');
+    const notificationList = document.getElementById('notification-list');
+    
+    if (!badge || !notificationList) return;
+    
+    const unreadCount = notifications.filter(n => !n.read).length;
+    
+    // Actualizar badge
+    if (unreadCount > 0) {
+        badge.style.display = 'block';
+        badge.textContent = unreadCount > 9 ? '9+' : unreadCount.toString();
+    } else {
+        badge.style.display = 'none';
+    }
+    
+    // Actualizar lista de notificaciones
+    if (notifications.length === 0) {
+        notificationList.innerHTML = `
+            <div class="dropdown-item-text text-center text-muted py-4">
+                <i class="fas fa-bell-slash fs-3 mb-2 d-block"></i>
+                <small>No hay notificaciones</small>
+            </div>
+        `;
+    } else {
+        notificationList.innerHTML = notifications.map(notification => `
+            <div class="dropdown-item ${notification.read ? '' : 'bg-light'} border-bottom p-3" 
+                 onclick="markNotificationAsRead('${notification.id}')">
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 ${notification.read ? '' : 'text-primary'}">${notification.title}</h6>
+                        <p class="mb-1">${notification.message}</p>
+                        <small class="text-muted">${formatDateTime(notification.timestamp)}</small>
+                    </div>
+                    ${!notification.read ? '<span class="badge bg-primary ms-2">Nuevo</span>' : ''}
+                </div>
+                ${notification.medicationName ? `
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-pills me-1"></i>${notification.medicationName}
+                        </small>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+}
+
+// Marcar notificación como leída
+function markNotificationAsRead(notificationId) {
+    const notification = notifications.find(n => n.id === notificationId);
+    if (notification) {
+        notification.read = true;
+        saveNotifications();
+        updateNotificationDisplay();
+        
+        // Si es una notificación de medicamento, redirigir a la sección
+        if (notification.type.includes('medication')) {
+            showSection('medicamentos');
+        }
+    }
+}
+
+// Marcar todas como leídas
+function markAllAsRead() {
+    notifications.forEach(notification => {
+        notification.read = true;
+    });
+    saveNotifications();
+    updateNotificationDisplay();
+}
+
+// Manejar acción de notificación
+function handleNotificationAction(notificationId) {
+    markNotificationAsRead(notificationId);
+    showSection('medicamentos');
+}
+
+// Limpiar notificaciones antiguas (más de 7 días)
+function cleanOldNotifications() {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    notifications = notifications.filter(notification => 
+        new Date(notification.timestamp) > sevenDaysAgo
+    );
+    saveNotifications();
+    updateNotificationDisplay();
+}
+
+// ========== FUNCIONES EXISTENTES MODIFICADAS ==========
 
 // Cargar datos del paciente actual desde MongoDB
 async function loadPatientData() {
@@ -532,7 +776,7 @@ function updateMedicationDisplays() {
     }
 }
 
-// Marcar medicamento como tomado en MongoDB
+// Marcar medicamento como tomado en MongoDB - VERSIÓN MODIFICADA CON NOTIFICACIÓN
 async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDosis, frecuencia) {
     try {
         console.log('🔄 Intentando registrar toma en MongoDB...');
@@ -577,7 +821,16 @@ async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDos
         updateMedicationProgress();
         updateSummaryCards();
         
-        showNotification(`✅ ${medicamentoNombre} registrado como tomado`, 'success');
+        // Agregar notificación de confirmación
+        addNotification({
+            type: 'medication_taken',
+            title: '✅ Medicamento Registrado',
+            message: `${medicamentoNombre} ha sido registrado como tomado`,
+            medicationId: `${recetaId}_${medicamentoNombre}`,
+            medicationName: medicamentoNombre,
+            timestamp: new Date().toISOString(),
+            read: false
+        });
         
     } catch (error) {
         console.error('❌ Error registrando toma:', error);
@@ -974,6 +1227,11 @@ function getAppointmentBadgeClass(status) {
 // Cerrar sesión
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
+        // Limpiar intervalo de notificaciones
+        if (notificationCheckInterval) {
+            clearInterval(notificationCheckInterval);
+        }
+        
         localStorage.removeItem('currentUser');
         localStorage.removeItem('currentPatient');
         window.location.href = '/index.html';
