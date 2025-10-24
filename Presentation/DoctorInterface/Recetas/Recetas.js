@@ -498,7 +498,10 @@ async function viewPrescriptionDetails(prescriptionId) {
         const detailsContent = document.getElementById('prescriptionPreviewContent');
         detailsContent.innerHTML = generatePrescriptionPreview(prescription, patientData, patientName);
         
-        document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+        document.getElementById('prescriptionPreviewSection').classList.remove('d-none');
+        
+        // Desplazar hacia la sección de detalles
+        document.getElementById('prescriptionPreviewSection').scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
         console.error('Error cargando detalles de receta:', error);
         alert('Error al cargar los detalles de la receta.');
@@ -551,7 +554,10 @@ async function previewPrescription() {
         const detailsContent = document.getElementById('prescriptionPreviewContent');
         detailsContent.innerHTML = generatePrescriptionPreview(previewPrescription, patient, patientName, true);
         
-        document.getElementById('prescriptionPreviewSection').classList.remove('hidden');
+        document.getElementById('prescriptionPreviewSection').classList.remove('d-none');
+        
+        // Desplazar hacia la sección de vista previa
+        document.getElementById('prescriptionPreviewSection').scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
         console.error('Error generando vista previa:', error);
         alert('Error al generar la vista previa. Por favor, intente nuevamente.');
@@ -630,41 +636,10 @@ function generatePrescriptionPreview(prescription, patient, patientName, isPrevi
         </div>
         
         ${!isPreview ? `
-            <div class="text-center mt-3">
-               
+            <div class="text-center mt-3">              
             </div>
         ` : ''}
     `;
-}
-
-// Cerrar vista previa
-function closePrescriptionPreview() {
-    document.getElementById('prescriptionPreviewSection').classList.add('hidden');
-}
-
-// Eliminar receta de MongoDB
-async function deletePrescription(prescriptionId, confirm = true) {
-    if (confirm && !window.confirm('¿Está seguro de que desea eliminar esta receta?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_RECETAS}/${prescriptionId}`, {
-            method: 'DELETE',
-        });
-        
-        if (!response.ok) {
-            throw new Error('Error al eliminar receta');
-        }
-        
-        await loadPrescriptionsList();
-        closePrescriptionPreview();
-        
-        alert('Receta eliminada correctamente.');
-    } catch (error) {
-        console.error('Error eliminando receta:', error);
-        alert('Error al eliminar la receta.');
-    }
 }
 
 // Formatear fecha

@@ -28,24 +28,24 @@
                 <ul class="navbar-nav me-auto">  
                 </ul>
                 <div class="d-flex align-items-center">                   
-            <button class="btn btn-outline-hospital text-dark" onclick="logout()">
-    <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
-</button>
+                    <button class="btn btn-outline-hospital text-dark" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
 
     <main class="container my-4">
-      
         <!-- Gestión de Recetas -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-prescription me-2"></i>Gestión de Recetas Médicas
             </div>
             <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
+                <div class="row">
+                    <!-- Columna izquierda: Formulario de receta -->
+                    <div class="col-md-6 mb-4">
                         <h4>Emitir Nueva Receta</h4>
                         <form id="prescriptionForm">
                             <div class="mb-3">
@@ -115,30 +115,36 @@
                             <div class="mb-3">
                                 <label for="doctorNotes" class="form-label">Notas del Médico</label>
                                 <textarea class="form-control" id="doctorNotes" rows="2" placeholder="Observaciones o notas importantes..."></textarea>
-                           <div class="box">
-    <button class="btn btn-sm btn-outline-hospital" onclick="emitPrescription('${p._id}')">
-        <i class="fas fa-prescription"></i> Emitir Receta
-    </button>
-</div>
-
-                    <div class="col-12">
+                            </div>
+                            
+                            <button type="submit" class="btn btn-hospital">
+                                <i class="fas fa-prescription"></i> Emitir Receta
+                            </button>
+                            
+                        </form>
+                    </div>
+                    
+                    <!-- Columna derecha: Recetas emitidas -->
+                    <div class="col-md-6">
                         <h4>Recetas Emitidas</h4>
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="searchPrescription" placeholder="Buscar receta...">
+                            <input type="text" class="form-control" id="searchPrescription" placeholder="Buscar receta por paciente o medicamento...">
                         </div>
-                        <div class="list-group" id="prescriptionsList">
-                            <!-- Las recetas se mostrarán aquí -->
+                        <div class="prescriptions-list-container">
+                            <div class="list-group" id="prescriptionsList">
+                                <!-- Las recetas se mostrarán aquí -->
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Vista Previa de Receta -->
-                <div class="row mt-4 hidden" id="prescriptionPreviewSection">
+                
+                <!-- Vista Previa de Receta - Ahora aparece debajo -->
+                <div class="row mt-4 d-none" id="prescriptionPreviewSection">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header">
-                                <i class="fas fa-eye me-2"></i>Vista Previa de Receta
-                                <button class="btn btn-sm btn-outline-hospital float-end" onclick="closePrescriptionPreview()">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-eye me-2"></i>Detalles de Receta</span>
+                                <button class="btn btn-sm btn-outline-hospital" onclick="closePrescriptionPreview()">
                                     <i class="fas fa-times"></i> Cerrar
                                 </button>
                             </div>
