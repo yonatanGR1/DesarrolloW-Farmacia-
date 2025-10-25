@@ -32,7 +32,7 @@
                 </ul>
                 <div class="d-flex align-items-center">
                     <span class="navbar-text me-3">
-                        <i class="fas fa-user me-1"></i> <span id="user-display-name">Dr. Juan Pérez</span>
+                        <i class="fas fa-user me-1"></i> <span id="user-display-name"></span>
                     </span>
                     <button class="btn btn-outline-hospital" onclick="logout()">
                         <i class="fas fa-sign-out-alt me-1"></i> Cerrar Sesión
@@ -188,5 +188,32 @@
     
     <!-- Archivos JavaScript separados -->
     <script src="DoctorInterface.js"></script>
+    
+<script>
+  (function () {
+    const raw = localStorage.getItem('currentDoctor') || localStorage.getItem('currentUser');
+    if (!raw) {
+      window.location.href = '/index.html';
+      return;
+    }
+
+    const u = JSON.parse(raw);
+
+    // Determina el prefijo según el género (por defecto Dr.)
+    let prefijo = 'Dr.';
+    if (u.genero && u.genero.toLowerCase().startsWith('f')) {
+      prefijo = 'Dra.';
+    }
+
+    // Arma el nombre completo con el prefijo
+    const nombreMostrar = [prefijo, u.nombre, u.apellido].filter(Boolean).join(' ');
+
+    const el = document.getElementById('user-display-name');
+    if (el) el.textContent = nombreMostrar;
+  })();
+</script>
+
+
+
 </body>
 </html>
