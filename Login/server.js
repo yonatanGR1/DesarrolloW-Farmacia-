@@ -41,8 +41,6 @@ mongoose.connect("mongodb://127.0.0.1:27017/miLogin", {
 .then(() => console.log("✓ Conectado a MongoDB"))
 .catch(err => console.error("✗ Error al conectar a MongoDB:", err));
 
-// ==================== RUTAS DE AUTENTICACIÓN ====================
-
 // Ruta para Registrar usuarios 
 app.post("/register", async (req, res) => {
   try {
@@ -155,7 +153,6 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-// ==================== RUTAS DE DOCTOR ====================
 
 // Endpoint para que el doctor agregue un paciente
 app.post("/api/doctor/add-paciente", async (req, res) => {
@@ -187,8 +184,6 @@ app.get("/api/doctor/pacientes/:doctorId", async (req, res) => {
     res.status(500).json({ error: "Error al obtener los pacientes" });
   }
 });
-
-// ==================== RUTAS DE PACIENTES ====================
 
 // Registrar nuevo paciente 
 app.post("/api/pacientes", async (req, res) => {
@@ -321,7 +316,7 @@ app.delete('/api/pacientes/:id', async (req, res) => {
   }
 });
 
-// ==================== IMPORTAR Y USAR RUTAS MODULARES ====================
+
 
 // Rutas de Recetas
 const recetasRoutes = require('./routes/recetas');
@@ -339,7 +334,6 @@ app.use('/api/diagnosticos', diagnosticosRoutes);
 const medicationTrackingRoutes = require('./routes/medicationTracking');
 app.use('/api/medication-tracking', medicationTrackingRoutes);
 
-// ==================== RUTAS ESPECÍFICAS PARA VISTAS DE PACIENTE ====================
 
 // Obtener recetas por paciente
 app.get("/api/recetas/paciente/:pacienteId", async (req, res) => {
@@ -377,19 +371,16 @@ app.get("/api/diagnosticos/paciente/:pacienteId", async (req, res) => {
   }
 });
 
-// ==================== RUTA RAÍZ ====================
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ==================== MANEJADOR DE ERRORES 404 ====================
+
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
-
-// ==================== INICIAR SERVIDOR ====================
 
 app.listen(PORT, () => {
   console.log(`\n✓ Servidor corriendo en http://localhost:${PORT}`);
