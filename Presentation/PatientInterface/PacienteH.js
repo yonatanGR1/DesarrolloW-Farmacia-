@@ -43,7 +43,7 @@ async function initializePatientPortal() {
     setInterval(cleanOldNotifications, 24 * 60 * 60 * 1000);
 }
 
-// ========== SIDEBAR DE NOTIFICACIONES ==========
+// ========== SIDEBAR DE NOTIFICACIONES ESPECÍFICAS POR PACIENTE ==========
 
 // Inicializar sistema de notificaciones
 function initializeNotifications() {
@@ -52,17 +52,28 @@ function initializeNotifications() {
     updateNotificationDisplay();
 }
 
-// Cargar notificaciones desde localStorage
+// Cargar notificaciones desde localStorage - ESPECÍFICAS POR PACIENTE
 function loadNotifications() {
-    const stored = localStorage.getItem('patientNotifications');
+    if (!currentPatient || !currentPatient._id) return;
+    
+    const storageKey = `patientNotifications_${currentPatient._id}`;
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
         notifications = JSON.parse(stored);
+        console.log(`📥 Notificaciones cargadas para paciente ${currentPatient._id}:`, notifications.length);
+    } else {
+        notifications = [];
+        console.log(`📥 No hay notificaciones previas para paciente ${currentPatient._id}`);
     }
 }
 
-// Guardar notificaciones en localStorage
+// Guardar notificaciones en localStorage - ESPECÍFICAS POR PACIENTE
 function saveNotifications() {
-    localStorage.setItem('patientNotifications', JSON.stringify(notifications));
+    if (!currentPatient || !currentPatient._id) return;
+    
+    const storageKey = `patientNotifications_${currentPatient._id}`;
+    localStorage.setItem(storageKey, JSON.stringify(notifications));
+    console.log(`💾 Notificaciones guardadas para paciente ${currentPatient._id}:`, notifications.length);
 }
 
 // Iniciar verificador de notificaciones
@@ -73,11 +84,12 @@ function startNotificationChecker() {
     checkMedicationNotifications();
 }
 
-// Verificar notificaciones de medicamentos
+// Verificar notificaciones de medicamentos - ESPECÍFICAS POR PACIENTE
 function checkMedicationNotifications() {
-    if (!activeMedications || activeMedications.length === 0) return;
+    if (!currentPatient || !activeMedications || activeMedications.length === 0) return;
 
     const now = new Date();
+    console.log(`🔍 Verificando notificaciones para paciente ${currentPatient.nombre}`);
     
     activeMedications.forEach(med => {
         const disponibilidad = calcularDisponibilidadMedicamento(med.nombre, med.recetaId, med.frecuencia);
@@ -87,7 +99,9 @@ function checkMedicationNotifications() {
             const existingNotification = notifications.find(n => 
                 n.medicationId === med.id && 
                 n.type === 'medication_available' &&
-                !n.read
+                !n.read &&
+                // Verificar que la notificación no sea muy vieja (menos de 1 hora)
+                (new Date() - new Date(n.timestamp)) < 60 * 60 * 1000
             );
 
             if (!existingNotification) {
@@ -98,7 +112,8 @@ function checkMedicationNotifications() {
                     medicationId: med.id,
                     medicationName: med.nombre,
                     timestamp: new Date().toISOString(),
-                    read: false
+                    read: false,
+                    patientId: currentPatient._id // Añadir ID del paciente
                 });
             }
         }
@@ -111,7 +126,8 @@ function checkMedicationNotifications() {
                 const existingReminder = notifications.find(n => 
                     n.medicationId === med.id && 
                     n.type === 'medication_reminder' &&
-                    !n.read
+                    !n.read &&
+                    (new Date() - new Date(n.timestamp)) < 5 * 60 * 1000 // No repetir en 5 minutos
                 );
 
                 if (!existingReminder) {
@@ -122,7 +138,8 @@ function checkMedicationNotifications() {
                         medicationId: med.id,
                         medicationName: med.nombre,
                         timestamp: new Date().toISOString(),
-                        read: false
+                        read: false,
+                        patientId: currentPatient._id // Añadir ID del paciente
                     });
                 }
             }
@@ -130,8 +147,14 @@ function checkMedicationNotifications() {
     });
 }
 
-// Agregar nueva notificación
+// Agregar nueva notificación - VERIFICAR QUE SEA PARA EL PACIENTE ACTUAL
 function addNotification(notification) {
+    // Verificar que la notificación sea para el paciente actual
+    if (currentPatient && notification.patientId !== currentPatient._id) {
+        console.warn('⚠️ Intento de agregar notificación para otro paciente');
+        return;
+    }
+    
     notification.id = Date.now().toString();
     notifications.unshift(notification);
     saveNotifications();
@@ -141,6 +164,8 @@ function addNotification(notification) {
     if (document.visibilityState === 'visible') {
         showNotificationToast(notification);
     }
+    
+    console.log(`✅ Notificación agregada para paciente ${currentPatient._id}:`, notification.title);
 }
 
 // Mostrar notificación toast
@@ -300,16 +325,21 @@ function handleNotificationAction(notificationId) {
     toggleNotificationsSidebar();
 }
 
-// Limpiar notificaciones antiguas (más de 7 días)
+// Limpiar notificaciones antiguas (más de 7 días) - SOLO DEL PACIENTE ACTUAL
 function cleanOldNotifications() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
+    const initialCount = notifications.length;
     notifications = notifications.filter(notification => 
         new Date(notification.timestamp) > sevenDaysAgo
     );
-    saveNotifications();
-    updateNotificationDisplay();
+    
+    if (notifications.length !== initialCount) {
+        saveNotifications();
+        updateNotificationDisplay();
+        console.log(`🧹 Limpiadas ${initialCount - notifications.length} notificaciones antiguas del paciente ${currentPatient._id}`);
+    }
 }
 
 // ========== FUNCIONES EXISTENTES MODIFICADAS ==========
@@ -354,15 +384,16 @@ async function loadPatientData() {
 function updatePatientInfo() {
     if (!currentPatient) return;
     
-    document.getElementById('patient-name').textContent = 
-        `${currentPatient.nombre} ${currentPatient.apellido}`;
-    document.getElementById('patient-age').textContent = 
-        `${currentPatient.edad} años`;
+    const patientName = `${currentPatient.nombre} ${currentPatient.apellido}`;
+    
+    document.getElementById('patient-name').textContent = patientName;
+    document.getElementById('patient-age').textContent = `${currentPatient.edad} años`;
     document.getElementById('patient-gender').textContent = currentPatient.genero || 'No especificado';
     document.getElementById('patient-phone').textContent = currentPatient.telefono || 'No especificado';
     document.getElementById('patient-email').textContent = currentPatient.email || 'No especificado';
-    document.getElementById('user-display-name').textContent = 
-        `${currentPatient.nombre} ${currentPatient.apellido}`;
+    document.getElementById('user-display-name').textContent = patientName;
+    
+    console.log(`👤 Información actualizada para: ${patientName}`);
 }
 
 // Cargar todos los datos del paciente
@@ -380,6 +411,7 @@ async function loadPatientPrescriptions() {
     try {
         if (!currentPatient || !currentPatient._id) return;
         
+        console.log(`📋 Cargando recetas para paciente: ${currentPatient._id}`);
         const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
@@ -406,6 +438,7 @@ async function loadPatientAppointments() {
     try {
         if (!currentPatient || !currentPatient._id) return;
         
+        console.log(`📅 Cargando citas para paciente: ${currentPatient._id}`);
         const response = await fetch(`/api/citas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
@@ -432,6 +465,7 @@ async function loadPatientDiagnoses() {
     try {
         if (!currentPatient || !currentPatient._id) return;
         
+        console.log(`🩺 Cargando diagnósticos para paciente: ${currentPatient._id}`);
         const response = await fetch(`/api/diagnosticos/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
@@ -458,7 +492,7 @@ async function loadMedicationTracking() {
     try {
         if (!currentPatient) return;
         
-        console.log('🔄 Cargando control de medicamentos...');
+        console.log(`🔄 Cargando control de medicamentos para paciente: ${currentPatient._id}`);
         
         // Cargar medicamentos activos desde recetas
         await processActiveMedications();
@@ -480,6 +514,8 @@ async function loadMedicationTracking() {
 // Cargar historial de medicamentos desde MongoDB
 async function loadMedicationHistory(fecha = null) {
     try {
+        if (!currentPatient || !currentPatient._id) return;
+        
         let url = `/api/medication-tracking/paciente/${currentPatient._id}`;
         if (fecha) {
             url += `?fecha=${fecha}`;
@@ -538,7 +574,8 @@ async function processActiveMedications() {
                             recetaFecha: prescription.fechaEmision,
                             doctor: prescription.doctorNombre || 'Médico no especificado',
                             activo: true,
-                            horaRecomendada: calcularHoraRecomendada(med.frecuencia)
+                            horaRecomendada: calcularHoraRecomendada(med.frecuencia),
+                            patientId: currentPatient._id // Asociar al paciente
                         });
                     }
                 });
@@ -862,7 +899,8 @@ async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDos
             medicationId: `${recetaId}_${medicamentoNombre}`,
             medicationName: medicamentoNombre,
             timestamp: new Date().toISOString(),
-            read: false
+            read: false,
+            patientId: currentPatient._id // Añadir ID del paciente
         });
         
     } catch (error) {
@@ -1195,26 +1233,41 @@ function updateSummaryCards() {
 // Configurar event listeners
 function setupEventListeners() {
     // Búsqueda en tiempo real
-    document.getElementById('search-prescriptions').addEventListener('input', function(e) {
-        filterItems('prescriptions-list', e.target.value);
-    });
+    const searchPrescriptions = document.getElementById('search-prescriptions');
+    const searchAppointments = document.getElementById('search-appointments');
+    const searchDiagnoses = document.getElementById('search-diagnoses');
+    const searchMedications = document.getElementById('search-medications');
     
-    document.getElementById('search-appointments').addEventListener('input', function(e) {
-        filterItems('appointments-list', e.target.value);
-    });
+    if (searchPrescriptions) {
+        searchPrescriptions.addEventListener('input', function(e) {
+            filterItems('prescriptions-list', e.target.value);
+        });
+    }
     
-    document.getElementById('search-diagnoses').addEventListener('input', function(e) {
-        filterItems('diagnoses-list', e.target.value);
-    });
+    if (searchAppointments) {
+        searchAppointments.addEventListener('input', function(e) {
+            filterItems('appointments-list', e.target.value);
+        });
+    }
     
-    document.getElementById('search-medications').addEventListener('input', function(e) {
-        filterItems('medications-list', e.target.value);
-    });
+    if (searchDiagnoses) {
+        searchDiagnoses.addEventListener('input', function(e) {
+            filterItems('diagnoses-list', e.target.value);
+        });
+    }
+    
+    if (searchMedications) {
+        searchMedications.addEventListener('input', function(e) {
+            filterItems('medications-list', e.target.value);
+        });
+    }
 }
 
 // Filtrar items en listas
 function filterItems(containerId, searchTerm) {
     const container = document.getElementById(containerId);
+    if (!container) return;
+    
     const items = container.querySelectorAll('.prescription-card, .appointment-card, .diagnosis-card, .medication-card');
     
     items.forEach(item => {
@@ -1235,7 +1288,10 @@ function showSection(sectionName) {
     });
     
     // Mostrar la sección seleccionada
-    document.getElementById(`${sectionName}-section`).style.display = 'block';
+    const targetSection = document.getElementById(`${sectionName}-section`);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
     
     // Actualizar navegación activa
     document.querySelectorAll('.nav-link').forEach(link => {
