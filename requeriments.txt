@@ -1,0 +1,6 @@
+Funciona Desde la carpeta Login 
+npm install 
+npm install cors
+nmp install cjs
+
+Arranca con "node server.js"
