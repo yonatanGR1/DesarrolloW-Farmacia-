@@ -1,5 +1,3 @@
-// Pacientes.js - Funcionalidad específica para gestión de pacientes
-
 let editingPatientId = null;
 let patients = [];
 
@@ -39,7 +37,6 @@ function initializePatientManager() {
     });
 }
 
-// Cargar lista de pacientes desde MongoDB
 async function loadPatientsList() {
     try {
         const response = await fetch('/api/pacientes');
@@ -203,7 +200,6 @@ async function editPatient(patientId) {
         document.getElementById('patientAllergies').value = patient.alergias ? patient.alergias.join(', ') : '';
         document.getElementById('patientMedications').value = patient.medicamentos ? patient.medicamentos.join(', ') : '';
         
-        // Cambiar a modo edición
         editingPatientId = patientId;
         
         // Cambiar texto del botón

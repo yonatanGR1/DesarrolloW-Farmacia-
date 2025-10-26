@@ -1,4 +1,3 @@
-// models/Diagnostico.js
 const mongoose = require('mongoose');
 
 const DiagnosticoSchema = new mongoose.Schema({
@@ -48,7 +47,7 @@ const DiagnosticoSchema = new mongoose.Schema({
         default: null
     }
 }, {
-    timestamps: true // Añade createdAt y updatedAt automáticamente
+    timestamps: true 
 });
 
 module.exports = mongoose.model('Diagnostico', DiagnosticoSchema);

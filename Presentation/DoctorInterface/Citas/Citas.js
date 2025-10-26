@@ -1,5 +1,3 @@
-// Citas.js - Funcionalidad específica para gestión de citas con MongoDB
-
 const API_CITAS = '/api/citas';
 let medicalAppointments = [];
 
@@ -22,7 +20,6 @@ async function initializeAppointmentManager() {
     checkSelectedPatient();
 }
 
-// Obtener lista de pacientes desde la API
 async function getPatients() {
     try {
         const res = await fetch("/api/pacientes");
@@ -37,7 +34,6 @@ async function getPatients() {
     }
 }
 
-// Cargar opciones de pacientes en el selector
 async function loadPatientOptions() {
     const patientSelect = document.getElementById('patientSelect');
     patientSelect.innerHTML = '<option value="">Seleccionar paciente...</option>';
@@ -58,7 +54,6 @@ async function loadPatientOptions() {
     }
 }
 
-// Verificar si hay un paciente seleccionado desde pacientes
 function checkSelectedPatient() {
     const selectedPatientId = localStorage.getItem('selectedPatientForAppointment');
     
@@ -69,7 +64,6 @@ function checkSelectedPatient() {
     }
 }
 
-// Mostrar mensaje cuando un paciente es seleccionado automáticamente
 async function showPatientSelectionMessage(patientId) {
     try {
         const patients = await getPatients();
@@ -100,7 +94,6 @@ async function showPatientSelectionMessage(patientId) {
     }
 }
 
-// Cargar citas programadas desde MongoDB
 async function loadScheduledAppointments() {
     const container = document.getElementById('scheduledAppointments');
     container.innerHTML = '<p class="text-center text-muted">Cargando citas...</p>';
@@ -119,7 +112,7 @@ async function loadScheduledAppointments() {
             return;
         }
         
-        // Ordenar citas por fecha y hora
+        // Ordena citas por fecha y hora
         medicalAppointments.sort((a, b) => {
             const dateA = new Date(a.fechaCita);
             const dateB = new Date(b.fechaCita);
@@ -167,7 +160,7 @@ async function loadScheduledAppointments() {
     }
 }
 
-// Programar una nueva cita en MongoDB
+
 async function scheduleAppointment() {
     const patientId = document.getElementById('patientSelect').value;
     const date = document.getElementById('appointmentDate').value;
@@ -185,8 +178,7 @@ async function scheduleAppointment() {
         const selectedOption = patientSelect.options[patientSelect.selectedIndex];
         const patientData = JSON.parse(selectedOption.getAttribute('data-patient'));
         
-        // Crear la fecha en formato ISO pero mantener la fecha local sin conversión de zona horaria
-        // Esto asegura que la fecha se guarde exactamente como la seleccionó el usuario
+   
         const [year, month, day] = date.split('-');
         const localDate = `${year}-${month}-${day}`;
         
@@ -222,7 +214,7 @@ async function scheduleAppointment() {
         // Reiniciar formulario
         document.getElementById('appointmentForm').reset();
         
-        // Remover mensaje de selección si existe
+       
         const messageDiv = document.getElementById('patientSelectionMessage');
         if (messageDiv) {
             messageDiv.remove();
@@ -236,7 +228,7 @@ async function scheduleAppointment() {
     }
 }
 
-// Editar cita existente
+
 async function editExistingAppointment(appointmentId) {
     try {
         const response = await fetch(`${API_CITAS}/${appointmentId}`);
@@ -246,7 +238,7 @@ async function editExistingAppointment(appointmentId) {
         
         const appointment = await response.json();
         
-        // Extraer la fecha en formato YYYY-MM-DD sin conversión de zona horaria
+
         let appointmentDate;
         if (appointment.fechaCita.includes('T')) {
             appointmentDate = appointment.fechaCita.split('T')[0];
@@ -254,7 +246,6 @@ async function editExistingAppointment(appointmentId) {
             appointmentDate = appointment.fechaCita;
         }
         
-        // Llenar el formulario con los datos de la cita
         document.getElementById('patientSelect').value = appointment.pacienteId;
         document.getElementById('appointmentDate').value = appointmentDate;
         document.getElementById('appointmentTime').value = appointment.horaCita;
@@ -343,7 +334,6 @@ async function cancelScheduledAppointment(appointmentId, confirm = true) {
     }
 }
 
-// Obtener clase CSS para el badge de estado
 function getStatusBadgeClass(status) {
     switch (status) {
         case 'programada':
@@ -359,9 +349,8 @@ function getStatusBadgeClass(status) {
     }
 }
 
-// Formatear fecha para mostrar - CORREGIDO para evitar cambio de día
 function formatAppointmentDate(dateString) {
-    // Extraer año, mes y día directamente sin conversión de zona horaria
+
     let year, month, day;
     
     if (dateString.includes('T')) {

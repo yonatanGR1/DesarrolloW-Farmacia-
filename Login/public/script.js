@@ -35,7 +35,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
             messageElement.textContent = 'Login exitoso! Redirigiendo...';
             messageElement.style.color = 'green';
             
-            // 🔥🔥🔥 CORRECCIÓN CRÍTICA: GUARDAR USUARIO EN LOCALSTORAGE 🔥🔥🔥
+           
             localStorage.setItem('currentUser', JSON.stringify({
                 _id: data.usuario.id,
                 nombre: data.usuario.nombre,
@@ -72,37 +72,4 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         messageElement.style.color = 'red';
     }
 });
-/* document.addEventListener("DOMContentLoaded", async () => {
-  // 👇 Asegúrate de guardar el ID del doctor cuando inicia sesión
-  const doctorId = localStorage.getItem("doctorId");
-  if (!doctorId) {
-    alert("Error: no se encontró el ID del doctor en sesión.");
-    return;
-  }
 
-  try {
-    const res = await fetch(`/api/doctor/pacientes/${doctorId}`);
-    const pacientes = await res.json();
-
-    const select = document.getElementById("patientSelect");
-    select.innerHTML = '<option value="">Seleccionar paciente...</option>';
-
-    if (!pacientes || pacientes.length === 0) {
-      const option = document.createElement("option");
-      option.textContent = "No hay pacientes registrados";
-      option.disabled = true;
-      select.appendChild(option);
-      return;
-    }
-
-    pacientes.forEach(p => {
-      const option = document.createElement("option");
-      option.value = p._id;
-      option.textContent = `${p.nombre} ${p.apellido} (${p.email})`;
-      select.appendChild(option);
-    });
-  } catch (err) {
-    console.error(err);
-    alert("Error al cargar la lista de pacientes");
-  }
-});*/

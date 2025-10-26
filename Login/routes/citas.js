@@ -1,4 +1,3 @@
-// routes/citas.js
 const express = require('express');
 const router = express.Router();
 const Cita = require('../models/Cita');

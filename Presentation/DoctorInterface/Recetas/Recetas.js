@@ -1,5 +1,3 @@
-// Recetas.js - Funcionalidad específica para gestión de recetas con MongoDB
-
 const API_RECETAS = '/api/recetas';
 let prescriptions = [];
 
@@ -9,7 +7,6 @@ async function initializePrescriptionManager() {
     await loadPrescriptionsList();
     setDefaultDates();
     
-    // Cargar parámetros de la URL (si viene desde diagnóstico)
     loadUrlParameters();
     
     // Configurar el formulario
@@ -67,7 +64,6 @@ function preselectPatient(pacienteId, pacienteNombre, pacienteApellido, tipoDiag
         }
     }
     
-    // Si no existe, agregarlo como opción
     if (!patientFound && pacienteId) {
         const option = document.createElement('option');
         option.value = pacienteId;
@@ -87,7 +83,7 @@ function preselectPatient(pacienteId, pacienteNombre, pacienteApellido, tipoDiag
     if (patientSelect.value === pacienteId) {
         showPatientSelectionMessage(pacienteNombre, pacienteApellido, tipoDiagnostico);
         
-        // Scroll al formulario
+     
         document.getElementById('prescriptionForm').scrollIntoView({ behavior: 'smooth' });
     }
 }
@@ -179,7 +175,6 @@ async function showPatientSelectionMessageFromStorage(patientId) {
     }
 }
 
-// Establecer fechas por defecto
 function setDefaultDates() {
     const today = new Date();
     const nextMonth = new Date(today);
@@ -292,7 +287,6 @@ async function createPrescription() {
             notasMedico: doctorNotes,
             doctorNombre: "Dr. Juan Pérez",
             estado: 'activa',
-            // Agregar referencia al diagnóstico si existe
             ...(diagnosticoId && { diagnosticoId: diagnosticoId })
         };
         
@@ -316,8 +310,7 @@ async function createPrescription() {
         document.getElementById('prescriptionForm').reset();
         resetMedicationsForm();
         setDefaultDates();
-        
-        // Limpiar mensajes y parámetros de URL
+   
         const messageDiv = document.getElementById('patientSelectionMessage');
         if (messageDiv) {
             messageDiv.remove();
@@ -360,7 +353,6 @@ function getMedicationsFromForm() {
     return medications;
 }
 
-// Reiniciar formulario de medicamentos
 function resetMedicationsForm() {
     const container = document.getElementById('medicationsContainer');
     container.innerHTML = `
@@ -556,7 +548,6 @@ async function previewPrescription() {
         
         document.getElementById('prescriptionPreviewSection').classList.remove('d-none');
         
-        // Desplazar hacia la sección de vista previa
         document.getElementById('prescriptionPreviewSection').scrollIntoView({ behavior: 'smooth' });
     } catch (error) {
         console.error('Error generando vista previa:', error);
@@ -564,7 +555,6 @@ async function previewPrescription() {
     }
 }
 
-// Generar HTML para vista previa de receta
 function generatePrescriptionPreview(prescription, patient, patientName, isPreview = false) {
     return `
         <div class="prescription-preview">

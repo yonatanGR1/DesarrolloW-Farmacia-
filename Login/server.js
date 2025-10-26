@@ -14,7 +14,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Archivos estáticos (HTML, CSS, JS)
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/Presentation', express.static(path.join(__dirname, "../Presentation")));
 app.use('/pantallaPaciente', express.static(path.join(__dirname, "../pantallaPaciente")));
@@ -154,7 +154,7 @@ app.get("/api/users", async (req, res) => {
 });
 
 
-// Endpoint para que el doctor agregue un paciente
+
 app.post("/api/doctor/add-paciente", async (req, res) => {
   try {
     const data = req.body;
@@ -216,7 +216,7 @@ app.post("/api/pacientes", async (req, res) => {
   }
 });
 
-// Obtener todos los pacientes 
+
 app.get("/api/pacientes", async (req, res) => {
   console.log("Consultando pacientes registrados");
   try {
@@ -236,7 +236,7 @@ app.get("/api/pacientes", async (req, res) => {
   }
 });
 
-// Obtener paciente por ID
+
 app.get("/api/pacientes/:id", async (req, res) => {
   console.log("Buscando paciente con id:", req.params.id);
   try {

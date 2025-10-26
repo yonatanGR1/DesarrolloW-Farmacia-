@@ -1,15 +1,15 @@
-const mongoose = require("mongoose");// importa la librería Mongoose para usar MongoDB desde Node.js
+const mongoose = require("mongoose");
 const personSchema = new mongoose.Schema({
-    nombre:{type:String,required:true}, // nombre obligatorio
-    apellido:{type:String,required:true}, // apellidos obligatorios
-    edad:{type:Number, required:true, min:0, max:120}, // corregido max a 120
+    nombre:{type:String,required:true}, 
+    apellido:{type:String,required:true}, 
+    edad:{type:Number, required:true, min:0, max:120}, 
     genero: {type:String,enum:["Masculino","Femenino","Otro"], required: true}, // rol limitado a doctor o paciente
-    telefono: {type:String, required:true,match:/^[0-9\\-]+$/}, // solo números y guiones
-    email:{type:String,required:true,unique:true},// "email": texto obligatorio y debe ser único
+    telefono: {type:String, required:true,match:/^[0-9\\-]+$/}, 
+    email:{type:String,required:true,unique:true},
     direccion:{type:String, required:true},
-    registrado: { type: Boolean, default: false }, // si el paciente ya creó su usuario
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // referencia al User creado al registrarse
+    registrado: { type: Boolean, default: false }, 
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
     recetas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Receta' }]
 }); 
 
-module.exports = mongoose.model("Paciente",personSchema); //modu...se modelo para que puedas usarlo en otros archivos del proyecto.
+module.exports = mongoose.model("Paciente",personSchema);

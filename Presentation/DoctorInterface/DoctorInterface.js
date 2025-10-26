@@ -1,6 +1,3 @@
-// DoctorInterface.js - Funcionalidad específica para médicos con MongoDB
-
-// URLs de las APIs
 const API_CITAS = '/api/citas';
 const API_PACIENTES = '/api/pacientes';
 const API_RECETAS = '/api/recetas';
@@ -28,7 +25,6 @@ async function initializeDoctorInterface() {
 
 // Función auxiliar para comparar fechas sin hora
 function compareDatesOnly(date1String, date2String) {
-    // Extraer solo la parte de fecha (YYYY-MM-DD)
     let dateStr1 = date1String;
     let dateStr2 = date2String;
     
@@ -264,7 +260,6 @@ async function loadDoctorPatients() {
             return;
         }
         
-        // Mostrar solo los primeros 6 pacientes en la vista rápida
         const patientsToShow = doctorPatients.slice(0, 6);
         
         patientsToShow.forEach(patient => {
@@ -289,8 +284,7 @@ async function loadDoctorPatients() {
             `;
             container.appendChild(patientElement);
         });
-        
-        // Si hay más pacientes, mostrar un mensaje
+
         if (doctorPatients.length > 6) {
             const morePatientsElement = document.createElement('div');
             morePatientsElement.className = 'col-12 text-center mt-3';
@@ -427,7 +421,7 @@ async function loadDoctorPrescriptions() {
 
 
 async function rescheduleAppointment(appointmentId) {
-    // Redirigir a la página de citas para editar
+
     window.location.href = `Citas/Citas.html?edit=${appointmentId}`;
 }
 
@@ -458,11 +452,10 @@ async function cancelTodayAppointment(appointmentId) {
 
 // Función para mostrar sección específica en el panel médico
 function showDoctorSection(sectionId) {
-    // Ocultar todas las secciones
+    
     const sections = document.querySelectorAll('.doctor-content-section');
     sections.forEach(section => section.classList.add('hidden'));
     
-    // Mostrar la sección seleccionada
     document.getElementById(sectionId).classList.remove('hidden');
 }
 

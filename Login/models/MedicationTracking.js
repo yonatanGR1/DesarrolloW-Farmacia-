@@ -1,5 +1,4 @@
-// models/MedicationTracking.js - CORREGIDO
-const mongoose = require('mongoose'); // 👈 ESTA LÍNEA FALTABA
+const mongoose = require('mongoose'); 
 
 const medicationTrackingSchema = new mongoose.Schema({
     pacienteId: {

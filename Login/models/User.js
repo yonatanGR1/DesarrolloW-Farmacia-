@@ -8,5 +8,5 @@ const userSchema = new mongoose.Schema({// crea un esquema (plantilla-tabla) par
     medicina:[{nombre:String,dosis:String}] //// "medicina": arreglo de objetos con nombre y dosis
 });
 
-//mongoose.model("User",userSchema); Crea un modelo llamado user basado en la plantilla userSchema
-module.exports = mongoose.model("User",userSchema); //module.exports= Exporta ese modelo para que puedas usarlo en otros archivos del proyecto.
+
+module.exports = mongoose.model("User",userSchema);

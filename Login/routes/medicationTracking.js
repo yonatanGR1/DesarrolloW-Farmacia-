@@ -1,16 +1,15 @@
-// routes/medicationTracking.js
 const express = require('express');
 const router = express.Router();
 const MedicationTracking = require('../models/MedicationTracking');
 const mongoose = require('mongoose');
 
-// Obtener historial de medicamentos del paciente
+
 router.get('/paciente/:pacienteId', async (req, res) => {
     try {
         const { pacienteId } = req.params;
         const { fecha } = req.query;
         
-        // Validar que pacienteId sea un ObjectId válido
+      
         if (!mongoose.Types.ObjectId.isValid(pacienteId)) {
             return res.status(400).json({ error: 'ID de paciente inválido' });
         }
@@ -36,7 +35,7 @@ router.get('/paciente/:pacienteId', async (req, res) => {
     }
 });
 
-// Registrar toma de medicamento
+
 router.post('/registrar-toma', async (req, res) => {
     try {
         const {
@@ -98,7 +97,7 @@ router.get('/estadisticas/:pacienteId', async (req, res) => {
                 $lte: new Date(fin)
             };
         } else {
-            // Últimos 30 días por defecto
+            
             const hace30Dias = new Date();
             hace30Dias.setDate(hace30Dias.getDate() - 30);
             fechaQuery.fechaToma = { $gte: hace30Dias };

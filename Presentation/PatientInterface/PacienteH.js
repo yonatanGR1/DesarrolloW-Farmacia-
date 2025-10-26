@@ -1,4 +1,3 @@
-// PacienteH.js - Portal del Paciente con Control de Medicamentos en Tiempo Real
 let currentPatient = null;
 let activeMedications = [];
 let medicationHistory = [];
@@ -43,7 +42,6 @@ async function initializePatientPortal() {
     setInterval(cleanOldNotifications, 24 * 60 * 60 * 1000);
 }
 
-// ========== SIDEBAR DE NOTIFICACIONES ESPECÍFICAS POR PACIENTE ==========
 
 // Inicializar sistema de notificaciones
 function initializeNotifications() {
@@ -52,7 +50,7 @@ function initializeNotifications() {
     updateNotificationDisplay();
 }
 
-// Cargar notificaciones desde localStorage - ESPECÍFICAS POR PACIENTE
+// Cargar notificaciones desde localStorage
 function loadNotifications() {
     if (!currentPatient || !currentPatient._id) return;
     
@@ -67,7 +65,7 @@ function loadNotifications() {
     }
 }
 
-// Guardar notificaciones en localStorage - ESPECÍFICAS POR PACIENTE
+// Guardar notificaciones en localStorage
 function saveNotifications() {
     if (!currentPatient || !currentPatient._id) return;
     
@@ -76,15 +74,15 @@ function saveNotifications() {
     console.log(`💾 Notificaciones guardadas para paciente ${currentPatient._id}:`, notifications.length);
 }
 
-// Iniciar verificador de notificaciones
+
 function startNotificationChecker() {
-    // Verificar cada 30 segundos
+    
     notificationCheckInterval = setInterval(checkMedicationNotifications, 30000);
-    // Verificar inmediatamente al cargar
+   
     checkMedicationNotifications();
 }
 
-// Verificar notificaciones de medicamentos - ESPECÍFICAS POR PACIENTE
+// Verificar notificaciones de medicamentos 
 function checkMedicationNotifications() {
     if (!currentPatient || !activeMedications || activeMedications.length === 0) return;
 
@@ -94,13 +92,12 @@ function checkMedicationNotifications() {
     activeMedications.forEach(med => {
         const disponibilidad = calcularDisponibilidadMedicamento(med.nombre, med.recetaId, med.frecuencia);
         
-        // Si el medicamento está disponible y no tenemos una notificación reciente
         if (disponibilidad.disponible) {
             const existingNotification = notifications.find(n => 
                 n.medicationId === med.id && 
                 n.type === 'medication_available' &&
                 !n.read &&
-                // Verificar que la notificación no sea muy vieja (menos de 1 hora)
+                
                 (new Date() - new Date(n.timestamp)) < 60 * 60 * 1000
             );
 
@@ -113,12 +110,12 @@ function checkMedicationNotifications() {
                     medicationName: med.nombre,
                     timestamp: new Date().toISOString(),
                     read: false,
-                    patientId: currentPatient._id // Añadir ID del paciente
+                    patientId: currentPatient._id 
                 });
             }
         }
 
-        // Notificación para medicamentos que pronto estarán disponibles
+        // Notificación para medicamentos
         if (disponibilidad.proximaToma) {
             const tiempoRestante = new Date(disponibilidad.proximaToma) - now;
             // Notificar 5 minutos antes de que esté disponible
@@ -127,7 +124,7 @@ function checkMedicationNotifications() {
                     n.medicationId === med.id && 
                     n.type === 'medication_reminder' &&
                     !n.read &&
-                    (new Date() - new Date(n.timestamp)) < 5 * 60 * 1000 // No repetir en 5 minutos
+                    (new Date() - new Date(n.timestamp)) < 5 * 60 * 1000 
                 );
 
                 if (!existingReminder) {
@@ -139,7 +136,7 @@ function checkMedicationNotifications() {
                         medicationName: med.nombre,
                         timestamp: new Date().toISOString(),
                         read: false,
-                        patientId: currentPatient._id // Añadir ID del paciente
+                        patientId: currentPatient._id 
                     });
                 }
             }
@@ -147,7 +144,6 @@ function checkMedicationNotifications() {
     });
 }
 
-// Agregar nueva notificación - VERIFICAR QUE SEA PARA EL PACIENTE ACTUAL
 function addNotification(notification) {
     // Verificar que la notificación sea para el paciente actual
     if (currentPatient && notification.patientId !== currentPatient._id) {
@@ -160,7 +156,6 @@ function addNotification(notification) {
     saveNotifications();
     updateNotificationDisplay();
     
-    // Mostrar notificación toast si la página está visible
     if (document.visibilityState === 'visible') {
         showNotificationToast(notification);
     }
@@ -168,7 +163,6 @@ function addNotification(notification) {
     console.log(`✅ Notificación agregada para paciente ${currentPatient._id}:`, notification.title);
 }
 
-// Mostrar notificación toast
 function showNotificationToast(notification) {
     const toast = document.createElement('div');
     toast.className = 'notification-toast';
@@ -192,7 +186,6 @@ function showNotificationToast(notification) {
     
     document.body.appendChild(toast);
     
-    // Auto-remover después de 8 segundos
     setTimeout(() => {
         if (toast.parentNode) {
             toast.remove();
@@ -200,7 +193,6 @@ function showNotificationToast(notification) {
     }, 8000);
 }
 
-// Obtener color para el tipo de notificación
 function getNotificationColor(type) {
     const colors = {
         'medication_available': 'bg-success text-white',
@@ -212,7 +204,6 @@ function getNotificationColor(type) {
     return colors[type] || 'bg-primary text-white';
 }
 
-// Alternar la sidebar de notificaciones
 function toggleNotificationsSidebar() {
     const sidebar = document.getElementById('notifications-sidebar');
     const overlay = document.getElementById('notifications-overlay');
@@ -230,7 +221,7 @@ function toggleNotificationsSidebar() {
     }
 }
 
-// Actualizar display de notificaciones - VERSIÓN MEJORADA CON SIDEBAR
+// Actualizar display 
 function updateNotificationDisplay() {
     const badge = document.getElementById('notification-badge');
     const notificationList = document.getElementById('notification-list');
@@ -239,7 +230,6 @@ function updateNotificationDisplay() {
     
     const unreadCount = notifications.filter(n => !n.read).length;
     
-    // Actualizar badge
     if (unreadCount > 0) {
         badge.style.display = 'block';
         badge.textContent = unreadCount > 9 ? '9+' : unreadCount.toString();
@@ -247,7 +237,7 @@ function updateNotificationDisplay() {
         badge.style.display = 'none';
     }
     
-    // Actualizar lista de notificaciones en la sidebar
+    // Actualizar lista de notificaciones
     if (notifications.length === 0) {
         notificationList.innerHTML = `
             <div class="text-center text-muted py-4">
@@ -281,7 +271,6 @@ function updateNotificationDisplay() {
     }
 }
 
-// Obtener clase de borde para notificación
 function getNotificationBorderClass(type) {
     const classes = {
         'medication_available': 'notification-success',
@@ -293,7 +282,6 @@ function getNotificationBorderClass(type) {
     return classes[type] || 'notification-primary';
 }
 
-// Marcar notificación como leída
 function markNotificationAsRead(notificationId) {
     const notification = notifications.find(n => n.id === notificationId);
     if (notification) {
@@ -301,7 +289,6 @@ function markNotificationAsRead(notificationId) {
         saveNotifications();
         updateNotificationDisplay();
         
-        // Si es una notificación de medicamento, redirigir a la sección
         if (notification.type.includes('medication')) {
             showSection('medicamentos');
             toggleNotificationsSidebar();
@@ -309,7 +296,6 @@ function markNotificationAsRead(notificationId) {
     }
 }
 
-// Marcar todas como leídas
 function markAllAsRead() {
     notifications.forEach(notification => {
         notification.read = true;
@@ -325,7 +311,7 @@ function handleNotificationAction(notificationId) {
     toggleNotificationsSidebar();
 }
 
-// Limpiar notificaciones antiguas (más de 7 días) - SOLO DEL PACIENTE ACTUAL
+// Limpiar notificaciones antiguas (más de 7 días)
 function cleanOldNotifications() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -342,9 +328,6 @@ function cleanOldNotifications() {
     }
 }
 
-// ========== FUNCIONES EXISTENTES MODIFICADAS ==========
-
-// Cargar datos del paciente actual desde MongoDB
 async function loadPatientData() {
     try {
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -380,7 +363,7 @@ async function loadPatientData() {
     }
 }
 
-// Actualizar información del paciente en la UI
+// Actualizar información
 function updatePatientInfo() {
     if (!currentPatient) return;
     
@@ -406,7 +389,7 @@ async function loadAllPatientData() {
     updateSummaryCards();
 }
 
-// Cargar recetas del paciente desde MongoDB
+// Cargar recetas del paciente
 async function loadPatientPrescriptions() {
     try {
         if (!currentPatient || !currentPatient._id) return;
@@ -433,7 +416,7 @@ async function loadPatientPrescriptions() {
     }
 }
 
-// Cargar citas del paciente desde MongoDB
+// Cargar citas del paciente
 async function loadPatientAppointments() {
     try {
         if (!currentPatient || !currentPatient._id) return;
@@ -460,7 +443,7 @@ async function loadPatientAppointments() {
     }
 }
 
-// Cargar diagnósticos del paciente desde MongoDB
+// Cargar diagnósticos
 async function loadPatientDiagnoses() {
     try {
         if (!currentPatient || !currentPatient._id) return;
@@ -487,7 +470,7 @@ async function loadPatientDiagnoses() {
     }
 }
 
-// Cargar y gestionar el control de medicamentos desde MongoDB
+
 async function loadMedicationTracking() {
     try {
         if (!currentPatient) return;
@@ -497,7 +480,7 @@ async function loadMedicationTracking() {
         // Cargar medicamentos activos desde recetas
         await processActiveMedications();
         
-        // Cargar historial completo desde MongoDB
+        // Cargar historial 
         await loadMedicationHistory();
         
         renderMedications();
@@ -511,7 +494,7 @@ async function loadMedicationTracking() {
     }
 }
 
-// Cargar historial de medicamentos desde MongoDB
+// Cargar historial de medicamentos
 async function loadMedicationHistory(fecha = null) {
     try {
         if (!currentPatient || !currentPatient._id) return;
@@ -525,7 +508,7 @@ async function loadMedicationHistory(fecha = null) {
         
         const response = await fetch(url);
         if (!response.ok) {
-            console.error('❌ Error en respuesta:', response.status);
+            console.error(' Error en respuesta:', response.status);
             throw new Error('Error al cargar historial');
         }
         
@@ -556,7 +539,7 @@ async function processActiveMedications() {
             
             const validityDate = new Date(prescription.fechaValidez);
             
-            // Solo procesar recetas válidas (no expiradas)
+            // recetas válidas (no expiradas)
             if (validityDate >= today) {
                 prescription.medicamentos.forEach(med => {
                     const medicationId = `${prescription._id}_${med.nombre}`;
@@ -575,7 +558,7 @@ async function processActiveMedications() {
                             doctor: prescription.doctorNombre || 'Médico no especificado',
                             activo: true,
                             horaRecomendada: calcularHoraRecomendada(med.frecuencia),
-                            patientId: currentPatient._id // Asociar al paciente
+                            patientId: currentPatient._id 
                         });
                     }
                 });
@@ -589,7 +572,7 @@ async function processActiveMedications() {
     }
 }
 
-// Calcular hora recomendada basada en la frecuencia
+
 function calcularHoraRecomendada(frecuencia) {
     const frecuencias = {
         'una vez al día': '08:00',
@@ -604,8 +587,6 @@ function calcularHoraRecomendada(frecuencia) {
     
     return frecuencias[frecuencia.toLowerCase()] || '08:00';
 }
-
-// ========== SISTEMA DE CONTROL POR TIEMPO REAL ==========
 
 // Calcular si un medicamento debe mostrarse como disponible para tomar
 function calcularDisponibilidadMedicamento(medicamentoNombre, recetaId, frecuencia) {
@@ -634,8 +615,7 @@ function calcularDisponibilidadMedicamento(medicamentoNombre, recetaId, frecuenc
         
         // Convertir frecuencia a milisegundos
         const frecuenciaMs = convertirFrecuenciaAMilisegundos(frecuencia);
-        
-        // Si ha pasado el tiempo de la frecuencia, está disponible
+
         if (tiempoDesdeUltimaToma >= frecuenciaMs) {
             return { 
                 disponible: true, 
@@ -665,18 +645,18 @@ function calcularDisponibilidadMedicamento(medicamentoNombre, recetaId, frecuenc
     }
 }
 
-// Convertir frecuencia a milisegundos
+
 function convertirFrecuenciaAMilisegundos(frecuencia) {
     const frecuencias = {
-        'cada 6 horas': 6 * 60 * 60 * 1000,      // 6 horas en milisegundos
-        'cada 8 horas': 8 * 60 * 60 * 1000,      // 8 horas en milisegundos  
-        'cada 12 horas': 12 * 60 * 60 * 1000,    // 12 horas en milisegundos
-        'una vez al día': 24 * 60 * 60 * 1000,   // 24 horas en milisegundos
-        'cada 24 horas': 24 * 60 * 60 * 1000,    // 24 horas en milisegundos
-        'cada 48 horas': 48 * 60 * 60 * 1000,    // 48 horas en milisegundos
-        'cada 72 horas': 72 * 60 * 60 * 1000,    // 72 horas en milisegundos
-        'cada 4 horas': 4 * 60 * 60 * 1000,      // 4 horas en milisegundos
-        'cada 2 horas': 2 * 60 * 60 * 1000       // 2 horas en milisegundos
+        'cada 6 horas': 6 * 60 * 60 * 1000,      
+        'cada 8 horas': 8 * 60 * 60 * 1000,      
+        'cada 12 horas': 12 * 60 * 60 * 1000,    
+        'una vez al día': 24 * 60 * 60 * 1000,   
+        'cada 24 horas': 24 * 60 * 60 * 1000,    
+        'cada 48 horas': 48 * 60 * 60 * 1000,    
+        'cada 72 horas': 72 * 60 * 60 * 1000,    
+        'cada 4 horas': 4 * 60 * 60 * 1000,     
+        'cada 2 horas': 2 * 60 * 60 * 1000       
     };
 
     // Buscar coincidencia (case insensitive)
@@ -687,7 +667,6 @@ function convertirFrecuenciaAMilisegundos(frecuencia) {
         }
     }
 
-    // Por defecto, 24 horas
     console.warn('Frecuencia no reconocida:', frecuencia, '- usando 24 horas por defecto');
     return 24 * 60 * 60 * 1000;
 }
@@ -725,7 +704,6 @@ function formatearTiempoTranscurrido(tiempoMs) {
     }
 }
 
-// Renderizar medicamentos para control - VERSIÓN CORREGIDA CON TIEMPO REAL
 function renderMedications() {
     const container = document.getElementById('medications-list');
     
@@ -741,7 +719,6 @@ function renderMedications() {
     }
     
     container.innerHTML = activeMedications.map(med => {
-        // ✅ USAR LA NUEVA LÓGICA DE DISPONIBILIDAD POR TIEMPO
         const disponibilidad = calcularDisponibilidadMedicamento(med.nombre, med.recetaId, med.frecuencia);
         const disponible = disponibilidad.disponible;
         const proximaToma = disponibilidad.proximaToma;
@@ -752,7 +729,6 @@ function renderMedications() {
             record.recetaId._id === med.recetaId
         );
 
-        // Determinar clase CSS basada en el estado
         let cardClass = 'medication-card border p-3 mb-3 rounded';
         if (!disponible && ultimaToma) {
             cardClass += ' medication-taken'; // Tomado recientemente
@@ -837,8 +813,6 @@ function renderMedications() {
         `;
     }).join('');
 }
-
-// Actualizar displays de medicamentos (se llama cada minuto)
 function updateMedicationDisplays() {
     if (document.getElementById('medicamentos-section').style.display !== 'none') {
         renderMedications();
@@ -846,7 +820,7 @@ function updateMedicationDisplays() {
     }
 }
 
-// Marcar medicamento como tomado en MongoDB - VERSIÓN MODIFICADA CON NOTIFICACIÓN
+// Marcar medicamento como tomado 
 async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDosis, frecuencia) {
     try {
         console.log('🔄 Intentando registrar toma en MongoDB...');
@@ -878,7 +852,7 @@ async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDos
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ Error del servidor:', errorText);
+            console.error(' Error del servidor:', errorText);
             throw new Error(`Error ${response.status}: ${errorText}`);
         }
 
@@ -904,19 +878,18 @@ async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDos
         });
         
     } catch (error) {
-        console.error('❌ Error registrando toma:', error);
-        showNotification(`❌ Error: ${error.message}`, 'error');
+        console.error(' Error registrando toma:', error);
+        showNotification(` Error: ${error.message}`, 'error');
     }
 }
 
-// Actualizar progreso de medicamentos - VERSIÓN CORREGIDA
+// Actualizar progreso de medicamento
 function updateMedicationProgress() {
     let medicamentosAlDia = 0;
     const totalActiveMeds = activeMedications.length;
 
     activeMedications.forEach(med => {
         const disponibilidad = calcularDisponibilidadMedicamento(med.nombre, med.recetaId, med.frecuencia);
-        // Si NO está disponible, significa que fue tomado recientemente y está al día
         if (!disponibilidad.disponible) {
             medicamentosAlDia++;
         }
@@ -1035,7 +1008,7 @@ function formatDate(dateString) {
     }
 }
 
-// Renderizar recetas (SOLO LECTURA)
+// Renderizar recetas 
 function renderPrescriptions(prescriptions) {
     const container = document.getElementById('prescriptions-list');
     
@@ -1086,7 +1059,7 @@ function renderPrescriptions(prescriptions) {
     }).join('');
 }
 
-// Renderizar citas (SOLO LECTURA)
+// Renderizar citas
 function renderAppointments(appointments) {
     const container = document.getElementById('appointments-list');
     
@@ -1130,7 +1103,7 @@ function renderAppointments(appointments) {
     }).join('');
 }
 
-// Renderizar diagnósticos (SOLO LECTURA)
+
 function renderDiagnoses(diagnoses) {
     const container = document.getElementById('diagnoses-list');
     
@@ -1153,7 +1126,7 @@ function renderDiagnoses(diagnoses) {
             <div class="mt-3">
                 <div class="mb-3">
                     <h6 class="text-primary">Diagnóstico Principal:</h6>
-                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.diagnostico || 'No especificado'}</p>
+                    <p class="mb-2 p-2 bg-light rounded">${diagnosis.descripcion || 'No especificado'}</p>
                 </div>
                 
                 <div class="mb-3">
@@ -1172,7 +1145,6 @@ function renderDiagnoses(diagnoses) {
     `).join('');
 }
 
-// Actualizar tarjetas de resumen
 function updateSummaryCards() {
     if (!currentPatient) return;
     
@@ -1230,7 +1202,6 @@ function updateSummaryCards() {
     document.getElementById('medications-progress').textContent = `Progreso: ${progressPercentage}%`;
 }
 
-// Configurar event listeners
 function setupEventListeners() {
     // Búsqueda en tiempo real
     const searchPrescriptions = document.getElementById('search-prescriptions');
@@ -1287,7 +1258,6 @@ function showSection(sectionName) {
         section.style.display = 'none';
     });
     
-    // Mostrar la sección seleccionada
     const targetSection = document.getElementById(`${sectionName}-section`);
     if (targetSection) {
         targetSection.style.display = 'block';
@@ -1298,8 +1268,7 @@ function showSection(sectionName) {
         link.classList.remove('active');
     });
     event.target.classList.add('active');
-    
-    // Si es la sección de medicamentos, actualizar
+ 
     if (sectionName === 'medicamentos') {
         updateMedicationProgress();
     }

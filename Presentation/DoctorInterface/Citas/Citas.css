@@ -73,13 +73,6 @@
     border-radius: 10px 10px 0 0 !important;
 }
 
-/* Estilo para la alerta de bienvenida */
-.alert-info {
-    background-color: rgba(44, 125, 177, 0.1);
-    border-color: rgba(44, 125, 177, 0.2);
-    color: var(--hospital-dark);
-    border-radius: 8px;
-}
 
 .alert-hospital {
     background-color: rgba(44, 125, 177, 0.1);
@@ -100,33 +93,6 @@
 
 .mb-4 {
     margin-bottom: 2rem !important;
-}
-
-/* ESTILOS PARA EL FOOTER */
-footer {
-    background-color: var(--footer-bg);
-    color: var(--footer-text);
-    padding: 25px 0;
-    margin-top: 40px;
-    border-top: 4px solid var(--hospital-primary);
-}
-
-footer p {
-    margin-bottom: 8px;
-}
-
-footer p:last-child {
-    margin-bottom: 0;
-}
-
-footer strong {
-    color: #fff;
-    font-weight: 600;
-}
-
-/* Efecto de transición para el footer */
-footer {
-    transition: background-color 0.3s ease;
 }
 
 /* Estilos responsivos adicionales */

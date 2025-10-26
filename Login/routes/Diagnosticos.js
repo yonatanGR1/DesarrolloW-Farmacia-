@@ -1,9 +1,8 @@
-// routes/diagnosticos.js
 const express = require('express');
 const router = express.Router();
 const Diagnostico = require('../models/Diagnostico');
 
-// Obtener todos los diagnósticos
+
 router.get('/', async (req, res) => {
     try {
         const diagnosticos = await Diagnostico.find().sort({ fecha: -1 });
@@ -54,7 +53,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Crear un nuevo diagnóstico
+
 router.post('/', async (req, res) => {
     try {
         const {
