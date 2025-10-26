@@ -384,7 +384,7 @@ function formatDate(dateString) {
 
 function logout() {
     if (confirm('¿Está seguro de que desea cerrar sesión?')) {
-        localStorage.clear();
-        window.location.href = '../index.html';
+        localStorage.removeItem('currentDoctor');
+        window.location.href = '/index.html';
     }
 }
