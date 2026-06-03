@@ -1,13 +1,10 @@
 # ==========================================
-# DEPENDENCIAS Y GESTIÓN DE PAQUETES
+# DEPENDENCIAS
 # ==========================================
 node_modules/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
 # ==========================================
-# VARIABLES DE ENTORNO (CRÍTICO - SIN SECRETS)
+# VARIABLES DE ENTORNO
 # ==========================================
 .env
 .env.local
@@ -15,68 +12,54 @@ pnpm-lock.yaml
 .env.production.local
 
 # ==========================================
-# LOGS Y ARCHIVOS TEMPORALES
+# LOGS
 # ==========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 *.log
-logs/
-*.pid
-*.seed
 
 # ==========================================
-# ARCHIVOS DE SISTEMA
+# SISTEMA OPERATIVO
 # ==========================================
 .DS_Store
 Thumbs.db
-.Directory
 desktop.ini
+$RECYCLE.BIN/
 
 # ==========================================
-# IDEs Y EDITORES
+# IDEs
 # ==========================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-*.sublime-project
-*.sublime-workspace
-.atom/
 
 # ==========================================
-# COMPILACIÓN Y DISTRIBUCIÓN
+# BUILD
 # ==========================================
 dist/
 build/
 .next/
 
 # ==========================================
-# TESTING Y COBERTURA
+# TESTING
 # ==========================================
 coverage/
 .nyc_output/
 
 # ==========================================
-# CACHÉ Y ARCHIVOS TEMPORALES
+# CACHE
 # ==========================================
 .cache/
 .eslintcache
-.prettier-ignore
 temp/
 tmp/
 
 # ==========================================
-# BASE DE DATOS (Si usas locales)
+# BASES DE DATOS LOCALES
 # ==========================================
 *.db
 *.sqlite
 *.sqlite3
-
-# ==========================================
-# ARCHIVOS DEL SISTEMA OPERATIVO
-# ==========================================
-.AppleDouble
-.LSOverride
-$RECYCLE.BIN/
