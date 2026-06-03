@@ -1,4 +1,5 @@
-const API_CITAS = '/api/citas';
+const API_BASE = "https://desarrollow-farmacia.onrender.com"; //URL base de la API
+const API_CITAS = `${API_BASE}/api/citas`;
 let medicalAppointments = [];
 
 // Inicializar gestión de citas
@@ -22,7 +23,7 @@ async function initializeAppointmentManager() {
 
 async function getPatients() {
     try {
-        const res = await fetch("/api/pacientes");
+        const res = await fetch(`${API_BASE}/api/pacientes`);
         if (!res.ok) {
             throw new Error('Error al cargar pacientes');
         }

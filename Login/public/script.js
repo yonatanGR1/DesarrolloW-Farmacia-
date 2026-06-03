@@ -1,6 +1,8 @@
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    const API_BASE = "https://desarrollow-farmacia.onrender.com";
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const messageElement = document.getElementById('message');
@@ -15,7 +17,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     try {
         console.log('Enviando login...'); // Para debug
         
-        const response = await fetch('/login', {
+        const response = await fetch(`${API_BASE}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -54,9 +56,9 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
                         nombre: data.usuario.nombre,
                         email: data.usuario.email
                     }));
-                    window.location.href = './Presentation/DoctorInterface/DoctorInterface.html';
+                    window.location.href = `${API_BASE}/Presentation/DoctorInterface/DoctorInterface.html`;
                 } else if (data.rol === 'paciente') {
-                    window.location.href = '../Presentation/PatientInterface/PacienteH.html';
+                    window.location.href = `${API_BASE}/Presentation/PatientInterface/PacienteH.html`;
                 } else {
                     // Redirección por defecto
                     window.location.href = '/index.html';

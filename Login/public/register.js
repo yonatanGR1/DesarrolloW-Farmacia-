@@ -1,6 +1,7 @@
 document.getElementById('registerForm').addEventListener('submit', async (e) => { 
     e.preventDefault();//Evita que la pagina se recargue al enviar 
 
+    const API_BASE = "https://desarrollow-farmacia.onrender.com"; //URL base de la API
     const nombre = document.getElementById('nombre').value;//Obtiene el texto del campo Nombre
     const email = document.getElementById('email').value;//Obtiene el texto del campo "email"
     const password = document.getElementById('password').value;//Obtiene el texto del campo password
@@ -22,7 +23,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     }
 
     try {
-        const response = await fetch('/register', {
+        const response = await fetch(`${API_BASE}/register`, {
             
             method: 'POST',//Enviar datos al servidor 
             headers: {
@@ -51,7 +52,7 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             
        
             setTimeout(() => {
-                window.location.href = 'index.html';
+                window.location.href = '/';
             }, 2000);
         } else {
             messageElement.textContent = data.error || 'Error al registrar usuario';

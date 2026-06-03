@@ -1,3 +1,6 @@
+const API_BASE = "https://desarrollow-farmacia.onrender.com";
+const API_DIAGNOSTICOS = `${API_BASE}/api/diagnosticos`;
+
 let currentDoctorId = null;
 let currentDoctorName = null;
 let currentAppointmentId = null;
@@ -75,7 +78,7 @@ function checkAppointmentData() {
 // Cargar lista de pacientes
 async function loadPacientes() {
     try {
-        const response = await fetch('/api/pacientes');
+        const response = await fetch(`${API_BASE}/api/pacientes`);
         if (!response.ok) {
             throw new Error('Error al cargar pacientes');
         }
@@ -111,7 +114,7 @@ async function loadDiagnosticos() {
         listContainer.style.display = 'none';
         emptyContainer.style.display = 'none';
 
-        const response = await fetch('/api/diagnosticos');
+        const response = await fetch(`${API_BASE}/api/diagnosticos`);
         if (!response.ok) {
             throw new Error('Error al cargar diagnósticos');
         }
@@ -253,7 +256,7 @@ async function saveDiagnostico(event) {
         let savedDiagnostico;
 
         try {
-            const response = await fetch('/api/diagnosticos', {
+            const response = await fetch(`${API_BASE}/api/diagnosticos`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -275,7 +278,7 @@ async function saveDiagnostico(event) {
         // Si hay una cita asociada, actualizar su estado a completada
         if (currentAppointmentId) {
             try {
-                await fetch(`/api/citas/${currentAppointmentId}`, {
+                await fetch(`${API_BASE}/api/citas/${currentAppointmentId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
@@ -337,7 +340,7 @@ async function deleteDiagnostico(diagnosticoId) {
             localStorage.setItem('diagnosticos', JSON.stringify(updatedDiagnosticos));
         } else {
     
-            const response = await fetch(`/api/diagnosticos/${diagnosticoId}`, {
+            const response = await fetch(`${API_BASE}/api/diagnosticos/${diagnosticoId}`, {
                 method: 'DELETE'
             });
 

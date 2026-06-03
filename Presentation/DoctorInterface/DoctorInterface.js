@@ -1,6 +1,7 @@
-const API_CITAS = '/api/citas';
-const API_PACIENTES = '/api/pacientes';
-const API_RECETAS = '/api/recetas';
+const API_BASE = "https://desarrollow-farmacia.onrender.com";
+const API_CITAS = `${API_BASE}/api/citas`;
+const API_PACIENTES = `${API_BASE}/api/pacientes`;
+const API_RECETAS = `${API_BASE}/api/recetas`;
 
 // Variables globales
 let doctorPatients = [];

@@ -5,10 +5,17 @@ const Cita = require('../models/Cita');
 // GET - Obtener todas las citas
 router.get('/', async (req, res) => {
   try {
-    const citas = await Cita.find().sort({ fechaCita: 1, horaCita: 1 });
+    const citas = await Cita.find().sort({ 
+      fechaCita: 1, 
+      horaCita: 1 
+    });
+    
     res.json(citas);
+
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.message 
+    });
   }
 });
 

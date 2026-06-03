@@ -1,3 +1,6 @@
+const API_BASE = "https://desarrollow-farmacia.onrender.com";
+const API_PACIENTES = `${API_BASE}/api/pacientes`;
+
 let editingPatientId = null;
 let patients = [];
 
@@ -39,7 +42,7 @@ function initializePatientManager() {
 
 async function loadPatientsList() {
     try {
-        const response = await fetch('/api/pacientes');
+        const response = await fetch(`${API_PACIENTES}`);
         if (!response.ok) {
             throw new Error('Error al cargar pacientes');
         }
@@ -143,7 +146,7 @@ async function registerPatient() {
     }
     
     try {
-        const response = await fetch('/api/pacientes', {
+        const response = await fetch(`${API_PACIENTES}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -181,7 +184,7 @@ async function registerPatient() {
 // Editar paciente
 async function editPatient(patientId) {
     try {
-        const response = await fetch(`/api/pacientes/${patientId}`);
+        const response = await fetch(`${API_PACIENTES}/${patientId}`);
         if (!response.ok) {
             throw new Error('Error al cargar paciente');
         }
@@ -245,7 +248,7 @@ async function updatePatient() {
     }
     
     try {
-        const response = await fetch(`/api/pacientes/${editingPatientId}`, {
+        const response = await fetch(`${API_PACIENTES}/${editingPatientId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -298,7 +301,7 @@ async function deletePatient(patientId, confirmDelete = true) {
     }
     
     try {
-        const response = await fetch(`/api/pacientes/${patientId}`, {
+        const response = await fetch(`${API_PACIENTES}/${patientId}`, {
             method: 'DELETE'
         });
 
@@ -319,7 +322,7 @@ async function deletePatient(patientId, confirmDelete = true) {
 // Ver detalles del paciente
 async function viewPatientDetails(patientId) {
     try {
-        const response = await fetch(`/api/pacientes/${patientId}`);
+        const response = await fetch(`${API_PACIENTES}/${patientId}`);
         if (!response.ok) {
             throw new Error('Error al cargar paciente');
         }

@@ -1,3 +1,6 @@
+const API_BASE = "https://desarrollow-farmacia.onrender.com";
+
+let prescriptions = [];
 let currentPatient = null;
 let activeMedications = [];
 let medicationHistory = [];
@@ -340,7 +343,7 @@ async function loadPatientData() {
 
         console.log('Buscando paciente con email:', currentUser.email);
 
-        const response = await fetch(`/api/pacientes/email/${currentUser.email}`);
+        const response = await fetch(`${API_BASE}/api/pacientes/email/${currentUser.email}`);
         
         if (!response.ok) {
             if (response.status === 404) {
@@ -395,7 +398,7 @@ async function loadPatientPrescriptions() {
         if (!currentPatient || !currentPatient._id) return;
         
         console.log(`📋 Cargando recetas para paciente: ${currentPatient._id}`);
-        const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
+        const response = await fetch(`${API_BASE}/api/recetas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
             if (response.status === 404) {
@@ -422,7 +425,7 @@ async function loadPatientAppointments() {
         if (!currentPatient || !currentPatient._id) return;
         
         console.log(`📅 Cargando citas para paciente: ${currentPatient._id}`);
-        const response = await fetch(`/api/citas/paciente/${currentPatient._id}`);
+        const response = await fetch(`${API_BASE}/api/citas/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
             if (response.status === 404) {
@@ -449,7 +452,7 @@ async function loadPatientDiagnoses() {
         if (!currentPatient || !currentPatient._id) return;
         
         console.log(`🩺 Cargando diagnósticos para paciente: ${currentPatient._id}`);
-        const response = await fetch(`/api/diagnosticos/paciente/${currentPatient._id}`);
+        const response = await fetch(`${API_BASE}/api/diagnosticos/paciente/${currentPatient._id}`);
         
         if (!response.ok) {
             if (response.status === 404) {
@@ -499,7 +502,7 @@ async function loadMedicationHistory(fecha = null) {
     try {
         if (!currentPatient || !currentPatient._id) return;
         
-        let url = `/api/medication-tracking/paciente/${currentPatient._id}`;
+        let url = `${API_BASE}/api/medication-tracking/paciente/${currentPatient._id}`;
         if (fecha) {
             url += `?fecha=${fecha}`;
         }
@@ -526,7 +529,7 @@ async function processActiveMedications() {
     try {
         if (!currentPatient || !currentPatient._id) return;
         
-        const response = await fetch(`/api/recetas/paciente/${currentPatient._id}`);
+        const response = await fetch(`${API_BASE}/api/recetas/paciente/${currentPatient._id}`);
         if (!response.ok) return;
         
         const prescriptions = await response.json();
@@ -840,7 +843,7 @@ async function toggleMedicationTaken(recetaId, medicamentoNombre, medicamentoDos
 
         console.log('📦 Datos a enviar:', registroToma);
 
-        const response = await fetch('/api/medication-tracking/registrar-toma', {
+        const response = await fetch(`${API_BASE}/api/medication-tracking/registrar-toma`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1267,7 +1270,10 @@ function showSection(sectionName) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    event.target.classList.add('active');
+
+    if(element){
+        element.classList.add('active');
+    }
  
     if (sectionName === 'medicamentos') {
         updateMedicationProgress();

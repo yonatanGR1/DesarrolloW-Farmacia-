@@ -1,4 +1,5 @@
-const API_RECETAS = '/api/recetas';
+const API_BASE = "https://desarrollow-farmacia.onrender.com";
+const API_RECETAS = `${API_BASE}/api/recetas`;
 let prescriptions = [];
 
 // Inicializar gestión de recetas
@@ -117,7 +118,7 @@ function showPatientSelectionMessage(pacienteNombre, pacienteApellido, tipoDiagn
 // Obtener lista de pacientes desde la API
 async function getPatients() {
     try {
-        const res = await fetch("/api/pacientes");
+        const res = await fetch(`${API_BASE}/api/pacientes`);
         if (!res.ok) {
             throw new Error('Error al cargar pacientes');
         }
