@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -34,12 +36,13 @@ console.log(" Modelo Cita importado:", !!Cita);
 console.log("Modelo Diagnostico importado:", !!Diagnostico);
 
 // Conexión a MongoDB
-mongoose.connect("mongodb://127.0.0.1:27017/miLogin", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log("✓ Conectado a MongoDB"))
-.catch(err => console.error("✗ Error al conectar a MongoDB:", err));
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log("✓ Conectado a MongoDB");
+  })
+  .catch(err => {
+    console.error("✗ Error al conectar a MongoDB:", err);
+  });
 
 // Ruta para Registrar usuarios 
 app.post("/register", async (req, res) => {

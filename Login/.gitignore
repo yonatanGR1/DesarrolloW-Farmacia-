@@ -1,16 +1,82 @@
-# Dependencias de Node.js
+# ==========================================
+# DEPENDENCIAS Y GESTIÓN DE PAQUETES
+# ==========================================
 node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ==========================================
+# VARIABLES DE ENTORNO (CRÍTICO - SIN SECRETS)
+# ==========================================
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# ==========================================
+# LOGS Y ARCHIVOS TEMPORALES
+# ==========================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+*.log
+logs/
+*.pid
+*.seed
 
-# Variables de entorno (NO subir contraseñas ni claves)
-.env
-
-# Archivos de sistema
+# ==========================================
+# ARCHIVOS DE SISTEMA
+# ==========================================
 .DS_Store
 Thumbs.db
+.Directory
+desktop.ini
 
-# Configuraciones locales de editores
+# ==========================================
+# IDEs Y EDITORES
+# ==========================================
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.atom/
+
+# ==========================================
+# COMPILACIÓN Y DISTRIBUCIÓN
+# ==========================================
+dist/
+build/
+.next/
+
+# ==========================================
+# TESTING Y COBERTURA
+# ==========================================
+coverage/
+.nyc_output/
+
+# ==========================================
+# CACHÉ Y ARCHIVOS TEMPORALES
+# ==========================================
+.cache/
+.eslintcache
+.prettier-ignore
+temp/
+tmp/
+
+# ==========================================
+# BASE DE DATOS (Si usas locales)
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# ==========================================
+.AppleDouble
+.LSOverride
+$RECYCLE.BIN/
